@@ -1378,5 +1378,35 @@ function toast(msg) {
   setTimeout(() => el.classList.remove('show'), 2800);
 }
 </script>
+
+<!-- ── Footer ── -->
+<footer style="
+  text-align:center; padding:32px 16px 40px;
+  border-top:1px solid var(--border); margin-top:40px;
+  font-family:var(--sans); display:flex; flex-direction:column; align-items:center; gap:14px;
+">
+  <p style="color:var(--muted);font-size:13px;">這個工具對你有幫助嗎？</p>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+    <a href="https://buymeacoffee.com/ssps6210noa" target="_blank" rel="noopener" style="
+      display:inline-flex;align-items:center;gap:8px;
+      background:#FFDD00;color:#000;font-weight:700;font-size:14px;
+      padding:10px 20px;border-radius:8px;text-decoration:none;
+      transition:opacity 0.15s;
+    " onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+      ☕ Buy Me a Coffee
+    </a>
+    <a href="https://docs.google.com/forms/d/1rfQ6N2Ljyabpefky9eifFO9_xyWhAMrJEpL7hliHQxk/viewform" target="_blank" rel="noopener" style="
+      display:inline-flex;align-items:center;gap:8px;
+      background:var(--surface2);color:var(--text);font-size:14px;
+      padding:10px 20px;border-radius:8px;text-decoration:none;border:1px solid var(--border2);
+      transition:opacity 0.15s;
+    " onmouseover="this.style.opacity='.75'" onmouseout="this.style.opacity='1'">
+      📋 告訴我你需要什麼功能
+    </a>
+  </div>
+  <p style="color:var(--muted);font-size:11px;margin-top:4px;">
+    MIT Licensed · <a href="https://github.com/ssps6210/teacher-toolkit" target="_blank" rel="noopener" style="color:var(--muted);">GitHub</a>
+  </p>
+</footer>
 </body>
 </html>
