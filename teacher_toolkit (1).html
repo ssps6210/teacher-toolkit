@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Toolkit · 考試分析系統</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,300;9..144,600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg: #0e0f11;
+    --surface: #16181c;
+    --surface2: #1e2026;
+    --border: #2a2d35;
+    --border2: #383c47;
+    --accent: #e8c547;
+    --accent2: #5b8aff;
+    --green: #4ade80;
+    --red: #f87171;
+    --orange: #fb923c;
+    --text: #e8e8e6;
+    --muted: #6b7280;
+    --mono: 'DM Mono', monospace;
+    --serif: 'Fraunces', serif;
+    --sans: 'Noto Sans TC', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+
+  /* ── Layout ── */
+  .shell { display: flex; flex-direction: column; min-height: 100vh; }
+  .topbar {
+    padding: 18px 32px; display: flex; align-items: center; gap: 16px;
+    border-bottom: 1px solid var(--border); background: var(--surface);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-family: var(--serif); font-size: 22px; font-weight: 600; color: var(--accent); letter-spacing: -0.5px; }
+  .logo span { color: var(--muted); font-weight: 300; font-size: 14px; margin-left: 8px; font-family: var(--mono); }
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* ── Sidebar steps ── */
+  .sidebar {
+    width: 220px; background: var(--surface); border-right: 1px solid var(--border);
+    padding: 24px 0; flex-shrink: 0; display: flex; flex-direction: column; gap: 4px;
+  }
+  .step-btn {
+    display: flex; align-items: center; gap: 12px; padding: 12px 20px;
+    cursor: pointer; border: none; background: transparent; color: var(--muted);
+    font-family: var(--sans); font-size: 13px; text-align: left; width: 100%;
+    border-left: 3px solid transparent; transition: all 0.15s;
+  }
+  .step-btn:hover { color: var(--text); background: var(--surface2); }
+  .step-btn.active { color: var(--text); border-left-color: var(--accent); background: var(--surface2); }
+  .step-btn.done { color: var(--green); }
+  .step-num {
+    width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid currentColor;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 11px; flex-shrink: 0;
+  }
+  .step-btn.done .step-num { background: var(--green); border-color: var(--green); color: #000; }
+  .step-btn.active .step-num { background: var(--accent); border-color: var(--accent); color: #000; }
+  .sidebar-foot { margin-top: auto; padding: 16px 20px; border-top: 1px solid var(--border); }
+  .api-input {
+    width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border2);
+    background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 11px;
+    outline: none; margin-top: 6px;
+  }
+  .api-label { font-size: 10px; color: var(--muted); font-family: var(--mono); text-transform: uppercase; letter-spacing: 1px; }
+
+  /* ── Content area ── */
+  .content { flex: 1; overflow-y: auto; padding: 32px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .panel-title { font-family: var(--serif); font-size: 26px; font-weight: 600; margin-bottom: 6px; }
+  .panel-sub { color: var(--muted); font-size: 13px; margin-bottom: 28px; line-height: 1.6; }
+
+  /* ── Upload zones ── */
+  .upload-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 28px; }
+  .upload-zone {
+    border: 2px dashed var(--border2); border-radius: 14px; padding: 28px 20px;
+    text-align: center; cursor: pointer; transition: all 0.2s; position: relative;
+    background: var(--surface2);
+  }
+  .upload-zone:hover { border-color: var(--accent); background: #e8c54708; }
+  .upload-zone.has-file { border-color: var(--green); border-style: solid; }
+  .upload-zone.has-file .uz-icon { color: var(--green); }
+  .uz-icon { font-size: 32px; margin-bottom: 10px; display: block; color: var(--muted); transition: color 0.2s; }
+  .uz-label { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .uz-hint { font-size: 11px; color: var(--muted); }
+  .uz-filename { font-size: 11px; color: var(--green); font-family: var(--mono); margin-top: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+  /* ── Config fields ── */
+  .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .field label { display: block; font-size: 11px; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border2);
+    background: var(--surface2); color: var(--text); font-family: var(--sans); font-size: 13px; outline: none;
+    transition: border-color 0.15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+  .field textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+
+  /* ── Buttons ── */
+  .btn {
+    padding: 11px 22px; border-radius: 8px; border: none; cursor: pointer;
+    font-family: var(--sans); font-size: 14px; font-weight: 600; transition: all 0.15s;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { filter: brightness(1.1); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; filter: none; }
+  .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border2); }
+  .btn-ghost:hover { border-color: var(--border2); background: var(--border); }
+  .btn-blue { background: var(--accent2); color: #fff; }
+  .btn-green { background: var(--green); color: #000; }
+  .btn-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+
+  /* ── Progress / log ── */
+  .log-box {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; font-family: var(--mono); font-size: 12px; line-height: 1.8;
+    max-height: 300px; overflow-y: auto; margin-top: 20px; color: var(--muted);
+  }
+  .log-box .ok  { color: var(--green); }
+  .log-box .err { color: var(--red); }
+  .log-box .inf { color: var(--accent); }
+  .log-box .dim { color: var(--muted); }
+  .progress-bar-wrap { height: 4px; background: var(--border); border-radius: 99px; margin-top: 16px; overflow: hidden; }
+  .progress-bar { height: 100%; background: var(--accent); border-radius: 99px; transition: width 0.4s ease; width: 0%; }
+
+  /* ── Output cards ── */
+  .output-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 24px; }
+  .out-card {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 14px;
+    padding: 22px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .out-card-title { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .out-card-desc { font-size: 12px; color: var(--muted); line-height: 1.6; }
+  .badge { font-size: 10px; font-family: var(--mono); padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+  .badge-green { background: #4ade8022; color: var(--green); border: 1px solid #4ade8044; }
+  .badge-yellow { background: #e8c54722; color: var(--accent); border: 1px solid #e8c54744; }
+  .badge-blue { background: #5b8aff22; color: var(--accent2); border: 1px solid #5b8aff44; }
+
+  /* ── Message preview ── */
+  .student-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 20px; max-height: 260px; overflow-y: auto; }
+  .student-row {
+    display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-radius: 8px;
+    cursor: pointer; border: 1px solid transparent; transition: all 0.1s;
+    background: var(--surface2);
+  }
+  .student-row:hover { border-color: var(--border2); }
+  .student-row.selected { border-color: var(--accent); background: #e8c54710; }
+  .s-name { flex: 1; font-size: 13px; font-weight: 500; }
+  .s-score { font-family: var(--mono); font-size: 12px; }
+  .msg-box {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+    padding: 20px; font-size: 13.5px; line-height: 1.9; white-space: pre-wrap;
+    max-height: 400px; overflow-y: auto; color: var(--text);
+  }
+
+  /* ── Divider / section ── */
+  .section-label { font-size: 10px; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+
+  /* ── Spinner ── */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { width: 16px; height: 16px; border: 2px solid transparent; border-top-color: currentColor; border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed; bottom: 28px; right: 28px; background: var(--surface);
+    border: 1px solid var(--border2); border-radius: 10px; padding: 12px 18px;
+    font-size: 13px; box-shadow: 0 8px 32px #00000066; opacity: 0;
+    transform: translateY(8px); transition: all 0.25s; z-index: 999; pointer-events: none;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+
+  /* ── Q table ── */
+  .q-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 12px; }
+  .q-table th { padding: 8px 12px; text-align: left; background: var(--surface2); color: var(--muted); font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); }
+  .q-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .q-table tr:hover td { background: var(--surface2); }
+  .err-rate { font-family: var(--mono); font-weight: 600; }
+  .rate-hi { color: var(--red); }
+  .rate-md { color: var(--orange); }
+  .rate-lo { color: var(--green); }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="logo">Teacher Toolkit <span>/ 考試分析系統</span></div>
+    <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+      <div id="status-dot" style="width:8px;height:8px;border-radius:50%;background:var(--muted);"></div>
+      <span id="status-label" style="font-size:12px;color:var(--muted);font-family:var(--mono);">待機中</span>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <button class="step-btn active" onclick="goPanel(0)" id="nav0">
+        <div class="step-num">1</div><span>上傳檔案</span>
+      </button>
+      <button class="step-btn" onclick="goPanel(1)" id="nav1">
+        <div class="step-num">2</div><span>設定參數</span>
+      </button>
+      <button class="step-btn" onclick="goPanel(2)" id="nav2">
+        <div class="step-num">3</div><span>生成分析</span>
+      </button>
+      <button class="step-btn" onclick="goPanel(3)" id="nav3">
+        <div class="step-num">4</div><span>家長訊息</span>
+      </button>
+      <button class="step-btn" onclick="goPanel(4)" id="nav4">
+        <div class="step-num">5</div><span>下載輸出</span>
+      </button>
+
+      <div class="sidebar-foot">
+        <div class="api-label">Anthropic API Key</div>
+        <input class="api-input" type="password" id="apiKey" placeholder="sk-ant-..." />
+        <div style="font-size:10px;color:var(--muted);margin-top:6px;line-height:1.5;">
+          Key 僅存在本地記憶體，<br>不會上傳任何地方。
+        </div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+
+      <!-- ═══ Panel 0: Upload ═══ -->
+      <div class="panel active" id="panel0">
+        <div class="panel-title">上傳考試檔案</div>
+        <div class="panel-sub">每次換新的考試，只需要替換這三個檔案，系統會自動讀取並分析。</div>
+
+        <div class="upload-grid">
+          <div class="upload-zone" id="zone-exam" ondragover="drag(event)" ondrop="drop(event,'exam')">
+            <input type="file" accept=".pdf" onchange="handleFile(event,'exam')">
+            <span class="uz-icon">📄</span>
+            <div class="uz-label">考卷 PDF</div>
+            <div class="uz-hint">題目原卷</div>
+            <div class="uz-filename" id="fname-exam">尚未上傳</div>
+          </div>
+          <div class="upload-zone" id="zone-answers" ondragover="drag(event)" ondrop="drop(event,'answers')">
+            <input type="file" accept=".pdf" onchange="handleFile(event,'answers')">
+            <span class="uz-icon">✅</span>
+            <div class="uz-label">答案 PDF</div>
+            <div class="uz-hint">標準答案</div>
+            <div class="uz-filename" id="fname-answers">尚未上傳</div>
+          </div>
+          <div class="upload-zone" id="zone-scores" ondragover="drag(event)" ondrop="drop(event,'scores')">
+            <input type="file" accept=".xlsx,.xls,.numbers" onchange="handleFile(event,'scores')">
+            <span class="uz-icon">📊</span>
+            <div class="uz-label">成績 Excel</div>
+            <div class="uz-hint">.xlsx 格式，含 q1 q2… 欄位</div>
+            <div class="uz-filename" id="fname-scores">尚未上傳</div>
+          </div>
+        </div>
+
+        <div id="scores-preview" style="display:none;">
+          <div class="section-label">成績預覽 — 已讀取學生</div>
+          <div id="scores-table-wrap"></div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="goPanel(1)">下一步：設定參數 →</button>
+        </div>
+      </div>
+
+      <!-- ═══ Panel 1: Config ═══ -->
+      <div class="panel" id="panel1">
+        <div class="panel-title">設定考試參數</div>
+        <div class="panel-sub">告訴系統這份考試的基本資訊，讓生成的內容更準確、更個性化。</div>
+
+        <div class="config-grid">
+          <div class="field">
+            <label>年級</label>
+            <select id="cfg-grade">
+              <option>Year 1</option><option>Year 2</option><option>Year 3</option>
+              <option>Year 4</option><option>Year 5</option>
+              <option selected>Year 6</option><option>Year 7</option>
+              <option>Year 8</option><option>Year 9</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>班別</label>
+            <input id="cfg-class" placeholder="例如：A班、英文班、週六組" value="A班">
+          </div>
+          <div class="field">
+            <label>考試名稱</label>
+            <input id="cfg-exam-name" placeholder="例如：2025 期中考 A卷" value="期中考 A卷">
+          </div>
+          <div class="field">
+            <label>老師署名</label>
+            <input id="cfg-teacher" placeholder="例如：Miss Chen">
+          </div>
+          <div class="field">
+            <label>滿分</label>
+            <input id="cfg-max" type="number" value="100">
+          </div>
+          <div class="field">
+            <label>訊息語言</label>
+            <select id="cfg-lang">
+              <option value="zh" selected>中文</option>
+              <option value="en">English</option>
+              <option value="mixed">中英混合</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field" style="margin-bottom:16px;">
+          <label>給家長的補充說明（選填，會加在每則訊息底部）</label>
+          <textarea id="cfg-note" placeholder="例如：下週四有補課，請記得提醒孩子帶課本。"></textarea>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="goPanel(0)">← 上一步</button>
+          <button class="btn btn-primary" onclick="goPanel(2)">下一步：生成分析 →</button>
+        </div>
+      </div>
+
+      <!-- ═══ Panel 2: Generate ═══ -->
+      <div class="panel" id="panel2">
+        <div class="panel-title">生成分析</div>
+        <div class="panel-sub">點下方按鈕，系統會依序完成三個任務。每個任務約需 20–60 秒，視題目數量而定。</div>
+
+        <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:24px;">
+          <div class="out-card" style="flex-direction:row; align-items:center; gap:14px; padding:16px 20px;">
+            <div style="font-size:24px;">📄</div>
+            <div style="flex:1;">
+              <div style="font-weight:700; font-size:14px; margin-bottom:2px;">題目解析 Word 文件</div>
+              <div style="font-size:12px; color:var(--muted);">AI 讀取考卷和答案 PDF，逐題生成口語化解析、解題步驟、小提示</div>
+            </div>
+            <div id="task1-badge" class="badge badge-yellow">待執行</div>
+          </div>
+          <div class="out-card" style="flex-direction:row; align-items:center; gap:14px; padding:16px 20px;">
+            <div style="font-size:24px;">📊</div>
+            <div style="flex:1;">
+              <div style="font-weight:700; font-size:14px; margin-bottom:2px;">錯題分析 Excel</div>
+              <div style="font-size:12px; color:var(--muted);">熱力圖矩陣、各題失分率排行、每人錯題詳細，含條件格式</div>
+            </div>
+            <div id="task2-badge" class="badge badge-yellow">待執行</div>
+          </div>
+          <div class="out-card" style="flex-direction:row; align-items:center; gap:14px; padding:16px 20px;">
+            <div style="font-size:24px;">💬</div>
+            <div style="flex:1;">
+              <div style="font-weight:700; font-size:14px; margin-bottom:2px;">家長訊息（互動工具）</div>
+              <div style="font-size:12px; color:var(--muted);">根據每位學生的錯題生成客製化訊息，可一鍵複製到 WhatsApp</div>
+            </div>
+            <div id="task3-badge" class="badge badge-yellow">待執行</div>
+          </div>
+        </div>
+
+        <div class="progress-bar-wrap"><div class="progress-bar" id="prog"></div></div>
+        <div class="log-box" id="logbox">
+          <div class="dim">— 等待開始 —</div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="goPanel(1)">← 上一步</button>
+          <button class="btn btn-primary" id="run-btn" onclick="runAll()">
+            <span class="spinner" id="run-spinner" style="display:none;"></span>
+            ⚡ 開始生成全部
+          </button>
+        </div>
+      </div>
+
+      <!-- ═══ Panel 3: Messages ═══ -->
+      <div class="panel" id="panel3">
+        <div class="panel-title">家長訊息預覽</div>
+        <div class="panel-sub">點選學生查看個人化訊息，含每道錯題的口語化解析。</div>
+
+        <div style="display:flex; gap:20px; flex-wrap:wrap;">
+          <div style="flex:0 0 220px; min-width:180px;">
+            <div class="section-label">學生列表（依分數排序）</div>
+            <div class="student-list" id="student-list"></div>
+          </div>
+          <div style="flex:1; min-width:280px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <div class="section-label" style="margin-bottom:0;">訊息預覽</div>
+              <button class="btn btn-green" onclick="copyMsg()" id="copy-btn" style="padding:8px 16px; font-size:12px;">📋 複製</button>
+            </div>
+            <div class="msg-box" id="msg-preview">← 請從左側選擇學生</div>
+            <div class="btn-row" style="margin-top:12px;">
+              <button class="btn btn-ghost" onclick="copyAllMsgs()" style="font-size:13px;">⚡ 複製全班所有訊息</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ Panel 4: Download ═══ -->
+      <div class="panel" id="panel4">
+        <div class="panel-title">下載輸出檔案</div>
+        <div class="panel-sub">所有檔案都在本地生成，不會上傳到任何伺服器。</div>
+
+        <div class="output-grid" id="output-cards">
+          <div class="out-card">
+            <div class="out-card-title">📄 題目解析 <span class="badge badge-yellow">待生成</span></div>
+            <div class="out-card-desc">每題的口語化解釋、解題步驟、給學生的小提示，適合六年級程度。</div>
+            <button class="btn btn-ghost" id="dl-doc" disabled onclick="downloadDoc()">⬇ 下載 .docx</button>
+          </div>
+          <div class="out-card">
+            <div class="out-card-title">📊 錯題分析 <span class="badge badge-yellow">待生成</span></div>
+            <div class="out-card-desc">熱力圖、失分率排行、每人錯題詳細 — 三個工作表完整分析。</div>
+            <button class="btn btn-ghost" id="dl-xlsx" disabled onclick="downloadXlsx()">⬇ 下載 .xlsx</button>
+          </div>
+          <div class="out-card">
+            <div class="out-card-title">💬 家長訊息工具 <span class="badge badge-yellow">待生成</span></div>
+            <div class="out-card-desc">獨立 HTML 檔，雙擊即可在瀏覽器開啟，不需要網路或安裝任何東西。</div>
+            <button class="btn btn-ghost" id="dl-html" disabled onclick="downloadHtml()">⬇ 下載 .html</button>
+          </div>
+        </div>
+
+        <div style="margin-top:32px;">
+          <div class="section-label">班級統計摘要</div>
+          <div id="summary-stats" style="color:var(--muted); font-size:13px;">請先完成步驟三的生成。</div>
+        </div>
+
+        <div style="margin-top:28px; padding:18px; background:var(--surface2); border-radius:10px; border:1px solid var(--border);">
+          <div style="font-size:13px; font-weight:700; margin-bottom:10px; color:var(--accent);">💡 下次換新考試，你只需要：</div>
+          <div style="font-size:13px; color:var(--muted); line-height:2;">
+            1️⃣ 重新開啟這個 HTML 檔案（或重新整理頁面）<br>
+            2️⃣ 步驟一：上傳新的考卷 PDF + 答案 PDF + 成績 xlsx<br>
+            3️⃣ 步驟二：更新年級、班別、考試名稱<br>
+            4️⃣ 步驟三：點「⚡ 開始生成全部」<br>
+            5️⃣ 下載三個輸出檔案 — 完成！
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+const state = {
+  files: { exam: null, answers: null, scores: null },
+  students: [],   // parsed from xlsx: [{name, score, wrong:[qkeys]}]
+  qData: {},      // generated by AI: {q1:{label,explain,tip,marks}, ...}
+  docBlob: null,
+  xlsxBlob: null,
+  msgHtml: null,
+  currentStudent: null,
+};
+
+// ═══════════════════════════════════════════════════════════════
+// NAV
+// ═══════════════════════════════════════════════════════════════
+function goPanel(i) {
+  document.querySelectorAll('.panel').forEach((p,j) => p.classList.toggle('active', j===i));
+  document.querySelectorAll('.step-btn').forEach((b,j) => b.classList.toggle('active', j===i));
+  if (i === 3) renderMessages();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FILE UPLOAD
+// ═══════════════════════════════════════════════════════════════
+function drag(e) { e.preventDefault(); }
+function drop(e, key) { e.preventDefault(); const f = e.dataTransfer.files[0]; if(f) processFile(f, key); }
+function handleFile(e, key) { const f = e.target.files[0]; if(f) processFile(f, key); }
+
+function processFile(file, key) {
+  state.files[key] = file;
+  const zone = document.getElementById('zone-'+key);
+  zone.classList.add('has-file');
+  document.getElementById('fname-'+key).textContent = file.name;
+  if (key === 'scores') parseScores(file);
+}
+
+function parseScores(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1});
+
+      // Find header row
+      let hdrIdx = -1;
+      for (let i=0; i<rows.length; i++) {
+        if (rows[i].some(c => String(c||'').toLowerCase().includes('real name'))) { hdrIdx = i; break; }
+      }
+      if (hdrIdx < 0) { toast('找不到 real name 欄位，請確認格式'); return; }
+
+      const headers = rows[hdrIdx].map(h => String(h||'').trim().toLowerCase());
+      const nameIdx = headers.indexOf('real name');
+      const scoreIdx = headers.indexOf('total score');
+      const statusIdx = headers.indexOf('paper status');
+
+      // Find q columns
+      const qIndices = {};
+      headers.forEach((h,i) => { if(/^q\d+$/.test(h)) qIndices[h] = i; });
+
+      // Parse students
+      state.students = [];
+      for (let i = hdrIdx+1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row[nameIdx]) continue;
+        const status = row[statusIdx];
+        if (status != 1 && status !== true) continue; // only submitted
+
+        const name = String(row[nameIdx]).trim();
+        const total = parseFloat(row[scoreIdx]) || 0;
+
+        // Figure out max marks per question from data
+        // and which are wrong
+        const wrong = [];
+        for (const [qk, qi] of Object.entries(qIndices)) {
+          const got = parseFloat(row[qi]) || 0;
+          // We don't know max yet — will set after AI returns
+          // Store raw score
+          if (!state.qData[qk]) state.qData[qk] = {got:{}, marks: null};
+          state.qData[qk].got = state.qData[qk].got || {};
+          state.qData[qk].got[name] = got;
+        }
+
+        // Store for now, wrong will be computed after max marks known
+        state.students.push({ name, score: total, rawQ: (() => {
+          const o = {};
+          for (const [qk, qi] of Object.entries(qIndices)) o[qk] = parseFloat(row[qi]) || 0;
+          return o;
+        })() });
+      }
+
+      // Infer max marks per q (max value in column)
+      for (const [qk, qi] of Object.entries(qIndices)) {
+        const vals = state.students.map(s => s.rawQ[qk]);
+        state.qData[qk] = state.qData[qk] || {};
+        state.qData[qk].marks = Math.max(...vals);
+      }
+
+      // Compute wrong per student
+      state.students.forEach(s => {
+        s.wrong = Object.keys(s.rawQ).filter(qk => {
+          const max = state.qData[qk]?.marks || 0;
+          return (max - (s.rawQ[qk] || 0)) > 0;
+        });
+      });
+
+      renderScoresPreview();
+      toast(`✅ 讀取成功：${state.students.length} 位已提交的學生`);
+    } catch(err) { toast('❌ 讀取失敗：'+err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderScoresPreview() {
+  const sorted = [...state.students].sort((a,b) => b.score - a.score);
+  const wrap = document.getElementById('scores-table-wrap');
+  wrap.innerHTML = `<table class="q-table">
+    <tr><th>#</th><th>姓名</th><th>總分</th><th>失分題數</th></tr>
+    ${sorted.map((s,i) => `<tr>
+      <td style="color:var(--muted);font-family:var(--mono)">${i+1}</td>
+      <td style="font-weight:600">${s.name}</td>
+      <td style="font-family:var(--mono);color:${s.score>=90?'var(--green)':s.score>=70?'var(--accent)':'var(--red)'}">${s.score}</td>
+      <td style="font-family:var(--mono);color:var(--muted)">${s.wrong.length}</td>
+    </tr>`).join('')}
+  </table>`;
+  document.getElementById('scores-preview').style.display = 'block';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RUN ALL
+// ═══════════════════════════════════════════════════════════════
+let running = false;
+
+async function runAll() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  if (!apiKey) { toast('❌ 請先輸入 API Key'); return; }
+  if (!state.files.exam && !state.files.answers) { toast('❌ 請先上傳考卷和答案 PDF'); return; }
+  if (state.students.length === 0) { toast('❌ 請先上傳成績 xlsx'); return; }
+  if (running) return;
+  running = true;
+
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  document.getElementById('run-spinner').style.display = 'inline-block';
+
+  const log = document.getElementById('logbox');
+  log.innerHTML = '';
+  setProgress(0);
+
+  function addLog(cls, msg) {
+    const d = document.createElement('div');
+    d.className = cls; d.textContent = msg;
+    log.appendChild(d); log.scrollTop = log.scrollHeight;
+  }
+
+  // ── Task 1: AI reads PDFs and generates question analysis ──
+  addLog('inf', '▶ 任務一：AI 讀取考卷 + 答案，生成題目解析...');
+  setBadge('task1-badge', 'running', '⏳ 進行中');
+
+  try {
+    const qAnalysis = await callClaudeForQAnalysis(apiKey, addLog);
+    // Merge into state.qData
+    Object.assign(state.qData, qAnalysis);
+    setBadge('task1-badge', 'done', '✅ 完成');
+    addLog('ok', '✓ 題目解析完成');
+    setProgress(33);
+  } catch(e) {
+    addLog('err', '✗ 題目解析失敗：'+e.message);
+    setBadge('task1-badge', 'err', '❌ 失敗');
+  }
+
+  // ── Task 2: Generate Excel ──
+  addLog('inf', '▶ 任務二：生成錯題分析 Excel...');
+  setBadge('task2-badge', 'running', '⏳ 進行中');
+  try {
+    state.xlsxBlob = generateExcel();
+    setBadge('task2-badge', 'done', '✅ 完成');
+    addLog('ok', '✓ Excel 生成完成');
+    setProgress(66);
+    document.getElementById('dl-xlsx').disabled = false;
+  } catch(e) {
+    addLog('err', '✗ Excel 生成失敗：'+e.message);
+    setBadge('task2-badge', 'err', '❌ 失敗');
+  }
+
+  // ── Task 3: Generate parent message HTML ──
+  addLog('inf', '▶ 任務三：生成家長訊息工具...');
+  setBadge('task3-badge', 'running', '⏳ 進行中');
+  try {
+    state.msgHtml = generateMsgHtml();
+    setBadge('task3-badge', 'done', '✅ 完成');
+    addLog('ok', '✓ 家長訊息工具生成完成');
+    setProgress(100);
+    document.getElementById('dl-html').disabled = false;
+  } catch(e) {
+    addLog('err', '✗ 訊息工具生成失敗：'+e.message);
+    setBadge('task3-badge', 'err', '❌ 失敗');
+  }
+
+  addLog('ok', '══ 全部完成！請前往步驟四查看家長訊息，步驟五下載檔案 ══');
+  renderSummary();
+  markStepsDone();
+
+  btn.disabled = false;
+  document.getElementById('run-spinner').style.display = 'none';
+  running = false;
+  setStatus('完成', 'var(--green)');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// AI CALL — reads exam+answer PDFs, returns q-by-q analysis
+// ═══════════════════════════════════════════════════════════════
+async function callClaudeForQAnalysis(apiKey, addLog) {
+  const grade = document.getElementById('cfg-grade').value;
+  const examName = document.getElementById('cfg-exam-name').value;
+  const lang = document.getElementById('cfg-lang').value;
+
+  // Build message content
+  const content = [];
+
+  // Add exam PDF if available
+  if (state.files.exam) {
+    addLog('dim', '  讀取考卷 PDF...');
+    const examB64 = await fileToBase64(state.files.exam);
+    content.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: examB64 } });
+  }
+
+  // Add answers PDF if available
+  if (state.files.answers) {
+    addLog('dim', '  讀取答案 PDF...');
+    const ansB64 = await fileToBase64(state.files.answers);
+    content.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: ansB64 } });
+  }
+
+  // Get q keys from parsed data
+  const qKeys = Object.keys(state.qData).sort((a,b) => {
+    const na = parseInt(a.replace('q',''));
+    const nb = parseInt(b.replace('q',''));
+    return na - nb;
+  });
+
+  const prompt = `You are analysing a ${grade} maths exam called "${examName}".
+
+The first PDF is the exam paper. The second PDF is the answer key.
+
+I need you to generate a question-by-question analysis for these questions: ${qKeys.join(', ')}
+
+For each question, provide:
+- label: short name like "Q1 四則運算" (include the topic)
+- marks: the maximum marks for this question (read from the exam paper)
+- explain: a clear, conversational explanation of the concept in ${lang === 'zh' ? 'Traditional Chinese' : lang === 'en' ? 'English' : 'Traditional Chinese with some English terms'}, suitable for ${grade} level students and their parents. Include what the correct answer is and HOW to get there. Be specific, not generic.
+- tip: a practical, memorable tip or common mistake to avoid, in the same language
+
+Respond ONLY with a valid JSON object, no markdown, no extra text:
+{
+  "q1": {"label": "Q1 ...", "marks": 4, "explain": "...", "tip": "..."},
+  "q2": {...},
+  ...
+}`;
+
+  content.push({ type: 'text', text: prompt });
+
+  addLog('dim', '  呼叫 Claude API...');
+  setStatus('AI 分析中…', 'var(--accent)');
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 8000,
+      messages: [{ role: 'user', content }]
+    })
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error?.message || res.statusText);
+  }
+
+  const data = await res.json();
+  const text = data.content.find(c => c.type === 'text')?.text || '';
+  addLog('dim', '  解析 AI 回應...');
+
+  // Strip any accidental markdown fences
+  const clean = text.replace(/```json|```/g, '').trim();
+  const parsed = JSON.parse(clean);
+  return parsed;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EXCEL GENERATION (pure JS, no server)
+// ═══════════════════════════════════════════════════════════════
+function generateExcel() {
+  const wb = XLSX.utils.book_new();
+  const students = [...state.students].sort((a,b) => b.score - a.score);
+  const qKeys = Object.keys(state.qData).sort((a,b) => parseInt(a.slice(1))-parseInt(b.slice(1)));
+  const avg = students.reduce((s,st) => s+st.score, 0) / students.length;
+
+  // ── Sheet 1: Summary ──
+  const s1 = [['姓名','總分','排名','失分題數','答對率%','備注']];
+  students.forEach((st,i) => {
+    const wrong = st.wrong.length;
+    const total = qKeys.length;
+    const note = st.score===100?'🏆滿分':st.score>=90?'⭐優秀':st.score>=80?'✅良好':st.score>=70?'🔶中等':'💪待加強';
+    s1.push([st.name, st.score, i+1, wrong, Math.round((total-wrong)/total*100)+'%', note]);
+  });
+  s1.push([]);
+  s1.push(['班級平均', Math.round(avg*10)/10, '', '', '', '']);
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s1), '成績總覽');
+
+  // ── Sheet 2: Heatmap ──
+  const s2Header = ['姓名', ...qKeys.map(q => state.qData[q]?.label || q)];
+  const s2 = [s2Header];
+  students.forEach(st => {
+    s2.push([st.name, ...qKeys.map(q => {
+      const max = state.qData[q]?.marks || 0;
+      const got = st.rawQ?.[q] ?? 0;
+      const lost = Math.max(0, max - got);
+      return lost > 0 ? lost : '';
+    })]);
+  });
+  // Error rate row
+  s2.push(['失分率', ...qKeys.map(q => {
+    const max = state.qData[q]?.marks || 1;
+    const totalLost = students.reduce((s,st) => s + Math.max(0,(max-(st.rawQ?.[q]||0))), 0);
+    return Math.round(totalLost/students.length/max*100)+'%';
+  })]);
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s2), '錯題熱力圖');
+
+  // ── Sheet 3: Per-student detail ──
+  const s3 = [['姓名','題號','題目','滿分','得分','失分','失分率%']];
+  students.forEach(st => {
+    st.wrong.forEach(qk => {
+      const q = state.qData[qk] || {};
+      const max = q.marks || 0;
+      const got = st.rawQ?.[qk] || 0;
+      const lost = max - got;
+      s3.push([st.name, qk.toUpperCase(), q.label || qk, max, got, lost, Math.round(lost/max*100)+'%']);
+    });
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s3), '每人錯題詳細');
+
+  // ── Sheet 4: Q ranking ──
+  const qRates = qKeys.map(qk => {
+    const max = state.qData[qk]?.marks || 1;
+    const totalLost = students.reduce((s,st) => s + Math.max(0,(max-(st.rawQ?.[qk]||0))), 0);
+    return { qk, rate: totalLost/students.length/max, label: state.qData[qk]?.label || qk };
+  }).sort((a,b) => b.rate - a.rate);
+
+  const s4 = [['排名','題號','題目主題','失分率%','難度']];
+  qRates.forEach((q,i) => {
+    const pct = Math.round(q.rate*100);
+    const diff = pct>=60?'🔴高難度':pct>=30?'🟠中難度':pct>=10?'🟡偏難':'🟢容易';
+    s4.push([i+1, q.qk.toUpperCase(), q.label, pct+'%', diff]);
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s4), '各題失分率排行');
+
+  return XLSX.write(wb, {type:'array', bookType:'xlsx'});
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PARENT MESSAGE GENERATION
+// ═══════════════════════════════════════════════════════════════
+function buildMsg(student) {
+  const { name, score, wrong } = student;
+  const firstName = name.split(' ')[0];
+  const avg = state.students.reduce((s,st) => s+st.score, 0) / state.students.length;
+  const diff = (score - avg).toFixed(1);
+  const diffStr = diff >= 0 ? `比班均高了 ${Math.abs(diff)} 分` : `離班均差了 ${Math.abs(diff)} 分`;
+  const teacher = document.getElementById('cfg-teacher')?.value || '';
+  const note = document.getElementById('cfg-note')?.value || '';
+  const examName = document.getElementById('cfg-exam-name')?.value || '期中考';
+  const grade = document.getElementById('cfg-grade')?.value || '';
+  const sig = teacher ? `\n— ${teacher}` : '';
+  const noteBlock = note ? `\n\n📌 補充：${note}` : '';
+
+  const scoreEmoji = score===100?'🏆':score>=90?'⭐':score>=80?'✅':score>=70?'🔶':'💪';
+
+  if (wrong.length === 0) {
+    return `${firstName} 家長您好 😊\n\n這次 ${grade} ${examName}，${firstName} 拿到滿分 100 分 🏆！全卷每道題都答對了，表現非常出色，平時的努力看得出來。\n\n請繼續保持這個好狀態！有任何問題歡迎隨時聯絡 🙏${noteBlock}${sig}`;
+  }
+
+  const scoreComment = score>=90
+    ? `整體表現非常好，${diffStr}，只有少數概念需要稍微複習 💪`
+    : score>=80
+    ? `整體表現不錯，${diffStr}，有幾個概念再鞏固一下就更完美了 📚`
+    : score>=70
+    ? `這次有些地方失了比較多分，${diffStr}，把以下概念補起來進步空間很大！`
+    : `這次考試有不少挑戰，${diffStr}，以下概念需要認真複習，我們一起加油 💪`;
+
+  const details = wrong.map(qk => {
+    const q = state.qData[qk] || {};
+    const max = q.marks || '?';
+    const label = q.label || qk.toUpperCase();
+    const explain = q.explain || '（解析生成中）';
+    const tip = q.tip || '';
+    return `📌 ${label}（${max}分）\n   📖 ${explain}${tip ? '\n   💡 ' + tip : ''}`;
+  }).join('\n\n');
+
+  return `${firstName} 家長您好 😊\n\n這裡是 ${teacher || '老師'}，來跟您分享 ${firstName} 這次 ${grade} ${examName} 的成績。\n\n${scoreEmoji} 本次得分：${score} / 100 分\n${scoreComment}\n\n${'─'.repeat(30)}\n需要複習的題目（共 ${wrong.length} 題）\n${'─'.repeat(30)}\n\n${details}\n\n${'─'.repeat(30)}\n\n${wrong.length<=3 ? `${firstName} 整體基礎很好，針對以上概念練習就能更上一層樓！` : `建議每天專注一個概念，兩週內就能把這些補起來。我也會多留意 ${firstName} 的進度 😊`}${noteBlock}${sig}`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GENERATE STANDALONE HTML (the parent message tool)
+// ═══════════════════════════════════════════════════════════════
+function generateMsgHtml() {
+  const studentsJson = JSON.stringify(state.students);
+  const qDataJson = JSON.stringify(state.qData);
+  const cfg = {
+    grade: document.getElementById('cfg-grade').value,
+    examName: document.getElementById('cfg-exam-name').value,
+    teacher: document.getElementById('cfg-teacher').value,
+    note: document.getElementById('cfg-note').value,
+    avg: (state.students.reduce((s,st)=>s+st.score,0)/state.students.length).toFixed(1),
+  };
+  const cfgJson = JSON.stringify(cfg);
+
+  return `<!DOCTYPE html>
+<html lang="zh-TW"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>家長訊息 · ${cfg.examName}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:#161b22;border-bottom:1px solid #30363d;padding:14px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:10}
+.title{font-size:17px;font-weight:800}
+.badge{font-size:11px;background:#21262d;border:1px solid #30363d;padding:3px 10px;border-radius:20px;color:#8b949e}
+.btn{padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:700;transition:background .2s}
+.btn-blue{background:#1f6feb;color:#fff}.btn-blue:hover{background:#388bfd}
+.btn-green{background:#238636;color:#fff}
+.main{display:flex;flex:1;overflow:hidden;min-height:0}
+.sidebar{width:240px;background:#161b22;border-right:1px solid #30363d;overflow-y:auto;flex-shrink:0}
+.s-row{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border:none;background:transparent;color:#e6edf3;width:100%;text-align:left;border-bottom:1px solid #21262d;border-left:3px solid transparent;transition:all .1s}
+.s-row:hover{background:#21262d}.s-row.sel{background:#1c2d4a;border-left-color:#58a6ff}
+.s-name{flex:1;font-size:12.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.s-score{font-size:11px;font-family:monospace}
+.content{flex:1;overflow-y:auto;padding:20px;display:flex;gap:16px;flex-wrap:wrap;align-content:flex-start}
+.msg-wrap{background:#161b22;border-radius:12px;border:1px solid #30363d;overflow:hidden;flex:1;min-width:280px}
+.msg-head{padding:11px 16px;background:#21262d;border-bottom:1px solid #30363d;display:flex;justify-content:space-between;align-items:center}
+.msg-body{padding:18px 20px;font-size:13.5px;line-height:1.9;white-space:pre-wrap;max-height:600px;overflow-y:auto}
+.search-wrap{padding:10px}
+.search-input{width:100%;padding:7px 11px;border-radius:8px;border:1px solid #30363d;background:#21262d;color:#e6edf3;font-size:12px;outline:none;box-sizing:border-box}
+</style></head>
+<body>
+<div class="topbar">
+  <div class="title">✉️ 家長訊息 · ${cfg.examName}</div>
+  <div class="badge">${cfg.grade} · ${cfg.avg}分 班均</div>
+  <div style="margin-left:auto;display:flex;gap:8px">
+    <button class="btn btn-blue" onclick="copyMsg()">📋 複製訊息</button>
+    <button class="btn btn-green" onclick="copyAll()">⚡ 複製全班</button>
+  </div>
+</div>
+<div class="main">
+  <div class="sidebar">
+    <div class="search-wrap">
+      <input class="search-input" placeholder="🔍 搜尋學生…" oninput="filterList(this.value)" />
+    </div>
+    <div id="slist"></div>
+  </div>
+  <div class="content">
+    <div class="msg-wrap">
+      <div class="msg-head"><span style="font-size:12px;color:#8b949e">📨 訊息預覽</span><span id="char-count" style="font-size:11px;color:#8b949e"></span></div>
+      <div class="msg-body" id="msg-body">← 請從左側選擇學生</div>
+    </div>
+  </div>
+</div>
+<script>
+const STUDENTS=${studentsJson};
+const Q_DATA=${qDataJson};
+const CFG=${cfgJson};
+let current=null;
+
+function scoreColor(s){return s===100?'#4ade80':s>=90?'#60a5fa':s>=80?'#a3e635':s>=70?'#fb923c':'#f87171'}
+function scoreEmoji(s){return s===100?'🏆':s>=90?'⭐':s>=80?'✅':s>=70?'🔶':'💪'}
+
+function buildMsg(st){
+  const firstName=st.name.split(' ')[0];
+  const diff=(st.score-parseFloat(CFG.avg)).toFixed(1);
+  const diffStr=diff>=0?'比班均高了 '+Math.abs(diff)+' 分':'離班均差了 '+Math.abs(diff)+' 分';
+  const sig=CFG.teacher?'\\n— '+CFG.teacher:'';
+  const noteBlock=CFG.note?'\\n\\n📌 補充：'+CFG.note:'';
+  const scoreEmoji2=scoreEmoji(st.score);
+  if(!st.wrong||st.wrong.length===0) return firstName+' 家長您好 😊\\n\\n這次 '+CFG.grade+' '+CFG.examName+'，'+firstName+' 拿到滿分 100 分 🏆！全卷每道題都答對了，表現非常出色。\\n\\n請繼續保持這個好狀態！有任何問題歡迎隨時聯絡 🙏'+noteBlock+sig;
+  const scoreComment=st.score>=90?'整體表現非常好，'+diffStr+'，只有少數概念需要稍微複習 💪':st.score>=80?'整體表現不錯，'+diffStr+'，有幾個概念再鞏固一下就更完美了 📚':st.score>=70?'這次有些地方失了比較多分，'+diffStr+'，把以下概念補起來進步空間很大！':'這次考試有不少挑戰，'+diffStr+'，以下概念需要認真複習，我們一起加油 💪';
+  const details=st.wrong.map(qk=>{const q=Q_DATA[qk]||{};const max=q.marks||'?';const label=q.label||qk.toUpperCase();const explain=q.explain||'';const tip=q.tip||'';return '📌 '+label+'（'+max+'分）\\n   📖 '+explain+(tip?'\\n   💡 '+tip:'');}).join('\\n\\n');
+  return firstName+' 家長您好 😊\\n\\n這裡是 '+(CFG.teacher||'老師')+'，來跟您分享 '+firstName+' 這次 '+CFG.grade+' '+CFG.examName+' 的成績。\\n\\n'+scoreEmoji2+' 本次得分：'+st.score+' / 100 分\\n'+scoreComment+'\\n\\n'+'─'.repeat(28)+'\\n需要複習的題目（共 '+st.wrong.length+' 題）\\n'+'─'.repeat(28)+'\\n\\n'+details+'\\n\\n'+'─'.repeat(28)+'\\n\\n'+(st.wrong.length<=3?firstName+' 整體基礎很好，針對以上概念練習就能更上一層樓！':'建議每天專注一個概念，兩週內就能把這些補起來。')+noteBlock+sig;
+}
+
+const sorted=[...STUDENTS].sort((a,b)=>b.score-a.score);
+function renderList(filter=''){
+  const list=document.getElementById('slist');
+  list.innerHTML=sorted.filter(s=>s.name.toLowerCase().includes(filter.toLowerCase())).map(s=>'<button class="s-row'+(current&&current.name===s.name?' sel':'')+'" onclick="select('+JSON.stringify(s.name)+')"><span class="s-name">'+s.name+'</span><span class="s-score" style="color:'+scoreColor(s.score)+'">'+s.score+'</span></button>').join('');
+}
+function select(name){current=sorted.find(s=>s.name===name);renderList();const msg=buildMsg(current);document.getElementById('msg-body').textContent=msg;document.getElementById('char-count').textContent=msg.length+' 字';}
+function filterList(v){renderList(v);}
+function copyMsg(){if(!current)return;navigator.clipboard.writeText(buildMsg(current));alert('已複製！');}
+function copyAll(){const all=sorted.map(s=>'═'.repeat(44)+'\\n【'+s.name+' '+s.score+'分】\\n'+'═'.repeat(44)+'\\n'+buildMsg(s)+'\\n').join('\\n\\n');navigator.clipboard.writeText(all);alert('已複製全部 '+sorted.length+' 則訊息！');}
+renderList();
+<\/script>
+</body></html>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MESSAGES PANEL
+// ═══════════════════════════════════════════════════════════════
+function renderMessages() {
+  const sorted = [...state.students].sort((a,b) => b.score - a.score);
+  const list = document.getElementById('student-list');
+  list.innerHTML = sorted.map(s => `
+    <div class="student-row ${state.currentStudent?.name===s.name?'selected':''}" onclick="selectStudent('${s.name}')">
+      <span style="font-size:16px">${s.score===100?'🏆':s.score>=90?'⭐':s.score>=80?'✅':s.score>=70?'🔶':'💪'}</span>
+      <span class="s-name">${s.name}</span>
+      <span class="s-score" style="color:${s.score>=90?'var(--green)':s.score>=70?'var(--accent)':'var(--red)'}">${s.score}</span>
+    </div>`).join('');
+}
+
+function selectStudent(name) {
+  state.currentStudent = state.students.find(s => s.name === name);
+  renderMessages();
+  const msg = buildMsg(state.currentStudent);
+  document.getElementById('msg-preview').textContent = msg;
+}
+
+function copyMsg() {
+  if (!state.currentStudent) return toast('請先選擇學生');
+  navigator.clipboard.writeText(buildMsg(state.currentStudent));
+  const btn = document.getElementById('copy-btn');
+  btn.textContent = '✅ 已複製！';
+  setTimeout(() => btn.textContent = '📋 複製', 2000);
+}
+
+function copyAllMsgs() {
+  const sorted = [...state.students].sort((a,b) => b.score - a.score);
+  const all = sorted.map(s => `${'═'.repeat(44)}\n【${s.name} ${s.score}分】\n${'═'.repeat(44)}\n${buildMsg(s)}\n`).join('\n\n');
+  navigator.clipboard.writeText(all);
+  toast(`✅ 已複製全部 ${sorted.length} 則訊息！`);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DOWNLOAD
+// ═══════════════════════════════════════════════════════════════
+function downloadXlsx() {
+  if (!state.xlsxBlob) return;
+  const blob = new Blob([state.xlsxBlob], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `錯題分析_${document.getElementById('cfg-exam-name').value}.xlsx`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+function downloadHtml() {
+  if (!state.msgHtml) return;
+  const blob = new Blob([state.msgHtml], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `家長訊息_${document.getElementById('cfg-exam-name').value}.html`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+function downloadDoc() { toast('Word 文件需由 Claude 生成後下載，請在步驟三確認已生成。'); }
+
+// ═══════════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════════
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+function setProgress(pct) { document.getElementById('prog').style.width = pct + '%'; }
+function setStatus(label, color) {
+  document.getElementById('status-label').textContent = label;
+  document.getElementById('status-dot').style.background = color;
+}
+
+function setBadge(id, type, text) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'badge ' + (type==='done'?'badge-green':type==='running'?'badge-blue':type==='err'?'badge-red':'badge-yellow');
+}
+
+function markStepsDone() {
+  [2,3,4].forEach(i => {
+    const nav = document.getElementById('nav'+i);
+    if (nav) nav.classList.add('done');
+  });
+}
+
+function renderSummary() {
+  const students = state.students;
+  const avg = (students.reduce((s,st)=>s+st.score,0)/students.length).toFixed(1);
+  const perfect = students.filter(s=>s.score===100).length;
+  const above80 = students.filter(s=>s.score>=80).length;
+  document.getElementById('summary-stats').innerHTML = `
+    <div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:8px;">
+      <div><div style="font-size:22px;font-weight:800;color:var(--accent)">${avg}</div><div style="font-size:11px;color:var(--muted)">班級平均</div></div>
+      <div><div style="font-size:22px;font-weight:800;color:var(--green)">${perfect}</div><div style="font-size:11px;color:var(--muted)">滿分人數</div></div>
+      <div><div style="font-size:22px;font-weight:800;color:var(--accent2)">${students.length}</div><div style="font-size:11px;color:var(--muted)">已提交人數</div></div>
+      <div><div style="font-size:22px;font-weight:800;color:var(--text)">${above80}</div><div style="font-size:11px;color:var(--muted)">80分以上</div></div>
+    </div>`;
+  document.getElementById('dl-xlsx').disabled = false;
+  document.getElementById('dl-html').disabled = false;
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
