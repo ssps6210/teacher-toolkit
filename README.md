@@ -13,7 +13,7 @@ A browser-based exam analysis tool for teachers. Upload student results, auto-ma
 
 ## 🎯 How to Use
 
-1. Open `teacher_toolkit (7).html` in your browser
+1. Open `index.html` in your browser
 2. Upload your student result file (`.xlsx` or `.docx`)
 3. Input or upload the answer key
 4. View analysis and wrong-question breakdown
@@ -30,7 +30,7 @@ A browser-based exam analysis tool for teachers. Upload student results, auto-ma
 
 | File | Description |
 |------|-------------|
-| `teacher_toolkit (7).html` | Latest version |
+| `teacher_toolkit(8).html` | Latest version |
 | `teacher_toolkit.html` – `(6).html` | Previous versions |
 | `parent_message_generator.jsx` | Message generator component |
 
