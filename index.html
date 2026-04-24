@@ -1165,13 +1165,14 @@ function buildMsg(student) {
     closeLong:  `It might look like a lot, but many of these are the same type of question — crack one and the rest follow. Start with the biggest point-losers and work through one concept a week. ${firstName} has the ability, just needs a bit of a push 💪 I'm here if you need me!`,
   } : {
     greetings: [
-      `${firstName} 爸爸媽媽好～`,
-      `${firstName} 家長您好！`,
-      `嗨，${firstName} 的家長 😊`,
-      `${firstName} 爸/媽，你好！`,
+      `嗨！${firstName} 的家長您好 😊`,
+      `${firstName} 的爸媽/家長您好～`,
+      `哈囉！${firstName} 的家長，你好！`,
+      `${firstName} 的家長，打擾您一下 😊`,
     ],
-    intro:      teacher ? `我是${teacher}，想跟您聊聊${firstName}這次${grade}${examName}的狀況～`
-                        : `想跟您聊聊${firstName}這次${grade}${examName}的狀況～`,
+    intro:      teacher
+      ? `我是 ${firstName} 的老師 ${teacher}～ 想跟您聊聊 ${firstName} 這次 ${grade} ${examName} 的情形 📝 考完試我習慣仔細看過每個孩子的答卷，把各題得失分整理出來跟家長說明，這樣在家陪孩子練習也更有方向，不用瞎猜。希望對您有幫助！`
+      : `想跟您分享一下 ${firstName} 這次 ${grade} ${examName} 的考試情形 📝 考完試我有仔細看過答卷，把各題的得失分整理出來，讓您在家陪 ${firstName} 練習時更有方向，一起配合讓學習更有效率 💪`,
     reportTxt:  `📊 這次的詳細成績報告在這裡，您可以點開看看各題的表現：`,
     noteTxt:    `另外想跟您說：`,
     sep:        '─'.repeat(28),
@@ -1179,17 +1180,17 @@ function buildMsg(student) {
     tipLabel:   '💡 小提示：',
     explainLabel: '',
     perfect: [
-      `${firstName}這次真的超厲害，考了滿分 ${maxScore} 分 🏆！每一題都答對了，平時紮實的練習完全看得出來，真的很替他/她高興！`,
-      `滿分！${maxScore} 分！🏆 ${firstName}這次完全沒有失分，每個概念都掌握得很好，非常了不起！謝謝您一直以來的配合和支持 🙏`,
-      `${firstName}這次考了滿分 ${maxScore} 分 🏆，全卷零失分。看得出來平時在家也有認真複習，成果真的很好！`,
+      `${firstName} 這次真的超級厲害，考了滿分 ${maxScore} 分 🏆！每一題都答對了，平時紮實的練習完全看得出來，真的替 ${firstName} 感到很驕傲！謝謝您在家的陪伴和鼓勵 🙏`,
+      `滿分！${maxScore} 分！🏆 ${firstName} 這次完全沒有失分，每個概念都掌握得非常扎實，真的很了不起！謝謝您一直以來對 ${firstName} 學習的支持與陪伴 🙏`,
+      `${firstName} 這次考了滿分 ${maxScore} 分 🏆，全卷零失分。看得出來在家有認真複習，孩子真的很棒，您也辛苦了！謝謝您的配合 😊`,
     ],
-    scoreHigh:  `${firstName}這次考了 ${score} 分（滿分 ${maxScore}），表現真的很棒 ⭐ 比班上平均${aboveAvg ? `高了 ${diffAbs} 分` : `只差了 ${diffAbs} 分`}，整體非常紮實！只有少數幾個地方還有點空間可以補強。`,
-    scoreMid:   `${firstName}這次考了 ${score} 分（滿分 ${maxScore}），整體還不錯 ✅ ${aboveAvg ? `比班均高了 ${diffAbs} 分` : `和班均差不多，差了 ${diffAbs} 分`}。有幾個地方稍微卡了一下，基礎其實是有的，針對練習一下就能補起來。`,
-    scoreLow:   `${firstName}這次考了 ${score} 分（滿分 ${maxScore}）🔶 ${aboveAvg ? `比班均高了 ${diffAbs} 分，` : `比班均低了 ${diffAbs} 分，`}有幾個概念這次失分比較多。但沒關係，問題找到了就好辦！下面我把具體的地方整理出來，有方向地練習進步會很快。`,
-    scoreVLow:  `${firstName}這次考了 ${score} 分（滿分 ${maxScore}）💪 遇到了不少挑戰，比班均低了 ${diffAbs} 分。我知道看到分數可能有點沮喪，但把問題找出來才是最重要的！咱們一起把這些概念補好。`,
-    closeShort: `整體來說${firstName}這次表現真的不錯，就差這幾個概念了。針對練習一下，下次更穩！有任何問題隨時找我 😊`,
-    closeMid:   `以上這幾個概念，建議每天花個 10–15 分鐘，一次專注一個，慢慢來不用急。我在課堂上也會多留意${firstName}，有問題隨時跟我說！`,
-    closeLong:  `題目看起來多，但很多是同類型的，搞懂一個就通了一串。建議先從失分最多的開始，每週攻一個概念。${firstName}有底子的，加把勁一定可以的 💪 有問題隨時來找我！`,
+    scoreHigh:  `${firstName} 這次考了 ${score} 分（滿分 ${maxScore}），表現真的很不錯 ⭐ 比班上平均${aboveAvg ? `高了 ${diffAbs} 分` : `只差了 ${diffAbs} 分`}，整體非常紮實！只有少數幾個地方還有點小空間可以補強，我把細節整理在下面，參考看看～`,
+    scoreMid:   `${firstName} 這次考了 ${score} 分（滿分 ${maxScore}），整體來說還不錯 ✅ ${aboveAvg ? `比班均高了 ${diffAbs} 分` : `和班均差不多，差了 ${diffAbs} 分`}。有幾個地方稍微卡了一下，不過基礎其實是有的，針對這幾個概念加強練習一下就能補起來，加油 💪`,
+    scoreLow:   `${firstName} 這次考了 ${score} 分（滿分 ${maxScore}）🔶 ${aboveAvg ? `比班均高了 ${diffAbs} 分，` : `比班均低了 ${diffAbs} 分，`}有幾個概念這次失分比較多。不過沒關係，問題找到了就好辦！我把具體失分的地方整理在下面，有方向地練習，進步會很快的 😊`,
+    scoreVLow:  `${firstName} 這次考了 ${score} 分（滿分 ${maxScore}）💪 比班均低了 ${diffAbs} 分，遇到了不少挑戰。我知道看到分數可能有點沮喪，但這正是找出盲點最好的機會！下面我整理了需要補強的概念，我們一起來把這些補起來，相信進步空間很大 😊`,
+    closeShort: `整體來說 ${firstName} 這次表現真的不錯，就差這幾個概念了！針對練習一下，下次一定更穩。有任何問題或想法都歡迎隨時傳訊息給我 😊`,
+    closeMid:   `針對以上這幾個概念，建議每天花個 10–15 分鐘，一次專注一個慢慢攻，不用著急。我在課堂上也會多關注 ${firstName} 的狀況，一起加油！有問題隨時找我說喔 😊`,
+    closeLong:  `看起來題目不少，但很多是同類型的，只要把一個概念搞懂，相關的題目基本上就都會了。建議先從失分最多的概念開始，每週集中攻克一個，比較有效率。${firstName} 是有底子的，只要方向對了一定可以的 💪 有問題隨時來找我！`,
   };
 
   // ── Assemble ─────────────────────────────────────────────────
@@ -1327,37 +1328,37 @@ function buildMsg(st){
   const reportUrl=getReportLink(st.name);
 
   const T=isEn?{
-    greetings:[`Hi ${firstName}'s parents! 😊`,`Dear ${firstName}'s family,`,`Hello! Quick update on ${firstName} 😊`,`Hi there, ${firstName}'s parents!`],
-    intro:teacher?`This is ${teacher} — wanted to share how ${firstName} got on in the ${CFG.grade} ${CFG.examName}.`:`Just wanted to share how ${firstName} got on in the ${CFG.grade} ${CFG.examName}.`,
-    reportTxt:`📊 You can view ${firstName}'s full report here:`,
+    greetings:["Hi "+firstName+"'s parents! 😊","Dear "+firstName+"'s family,","Hello! Quick update on "+firstName+" 😊","Hi there, "+firstName+"'s parents!"],
+    intro:teacher?"This is "+teacher+" — wanted to share how "+firstName+" got on in the "+CFG.grade+" "+CFG.examName+".":"Just wanted to share how "+firstName+" got on in the "+CFG.grade+" "+CFG.examName+".",
+    reportTxt:"📊 You can view "+firstName+"'s full report here:",
     noteTxt:'📌 One more thing:',
     sep:'─'.repeat(30),
-    wrongHdr:n=>`Topics to review (${n} in total)`,
+    wrongHdr:function(n){return "Topics to review ("+n+" in total)";},
     tipLabel:'💡 Tip:',
-    perfect:[`${firstName} absolutely nailed it — full marks, ${maxScore}/${maxScore}! 🏆 Every single question answered correctly. All that hard work is really showing!`,`Full marks! 🏆 ${maxScore}/${maxScore} — ${firstName} didn't miss a single question. Well done!`,`${firstName} got a perfect score of ${maxScore}/${maxScore} 🏆 Thank you so much for all your support at home 🙏`],
-    scoreHigh:`${firstName} did really well — ${st.score}/${maxScore} ⭐ ${aboveAvg?diffAbs+' marks above':'just '+diffAbs+' marks below'} the class average. Solid work! Just a couple of small areas to tidy up.`,
-    scoreMid:`${firstName} scored ${st.score}/${maxScore} ✅ — ${aboveAvg?diffAbs+' marks above the class average':'close to the class average, '+diffAbs+' marks below'}. A few tricky spots, but the foundation is there.`,
-    scoreLow:`${firstName} got ${st.score}/${maxScore} 🔶 — ${aboveAvg?diffAbs+' marks above':''+diffAbs+' marks below'} the class average. A few concepts cost some marks. Now we know what to work on, progress will come quickly!`,
-    scoreVLow:`${firstName} scored ${st.score}/${maxScore} 💪 — ${diffAbs} marks below the class average. Finding the gaps is exactly what we need — let's tackle them together.`,
-    closeShort:`Overall ${firstName} did really well — just these few concepts to polish up. Focused practice and next time will be even stronger! Feel free to reach out anytime 😊`,
-    closeMid:`Even 10–15 minutes a day on one concept at a time makes a big difference. I'll also keep a closer eye on ${firstName} in class. Just shout if you need anything!`,
-    closeLong:`It might look like a lot, but many are the same type — crack one and the rest follow. Start with the biggest point-losers, one concept a week. ${firstName} has the ability 💪 I'm here if you need me!`,
+    perfect:[firstName+" absolutely nailed it — full marks, "+maxScore+"/"+maxScore+"! 🏆 Every single question answered correctly. All that hard work is really showing!","Full marks! 🏆 "+maxScore+"/"+maxScore+" — "+firstName+" didn't miss a single question. Well done!",firstName+" got a perfect score of "+maxScore+"/"+maxScore+" 🏆 Thank you so much for all your support at home 🙏"],
+    scoreHigh:firstName+" did really well — "+st.score+"/"+maxScore+" ⭐ "+(aboveAvg?diffAbs+' marks above':'just '+diffAbs+' marks below')+" the class average. Solid work! Just a couple of small areas to tidy up.",
+    scoreMid:firstName+" scored "+st.score+"/"+maxScore+" ✅ — "+(aboveAvg?diffAbs+' marks above the class average':'close to the class average, '+diffAbs+' marks below')+". A few tricky spots, but the foundation is there.",
+    scoreLow:firstName+" got "+st.score+"/"+maxScore+" 🔶 — "+(aboveAvg?diffAbs+' marks above':''+diffAbs+' marks below')+" the class average. A few concepts cost some marks. Now we know what to work on, progress will come quickly!",
+    scoreVLow:firstName+" scored "+st.score+"/"+maxScore+" 💪 — "+diffAbs+" marks below the class average. Finding the gaps is exactly what we need — let's tackle them together.",
+    closeShort:"Overall "+firstName+" did really well — just these few concepts to polish up. Focused practice and next time will be even stronger! Feel free to reach out anytime 😊",
+    closeMid:"Even 10–15 minutes a day on one concept at a time makes a big difference. I'll also keep a closer eye on "+firstName+" in class. Just shout if you need anything!",
+    closeLong:"It might look like a lot, but many are the same type — crack one and the rest follow. Start with the biggest point-losers, one concept a week. "+firstName+" has the ability 💪 I'm here if you need me!",
   }:{
-    greetings:[firstName+' 爸爸媽媽好～',firstName+' 家長您好！','嗨，'+firstName+' 的家長 😊',firstName+' 爸/媽，你好！'],
-    intro:teacher?'我是'+teacher+'，想跟您聊聊'+firstName+'這次'+CFG.grade+CFG.examName+'的狀況～':'想跟您聊聊'+firstName+'這次'+CFG.grade+CFG.examName+'的狀況～',
+    greetings:['嗨！'+firstName+' 的家長您好 😊',firstName+' 的爸媽/家長您好～','哈囉！'+firstName+' 的家長，你好！',firstName+' 的家長，打擾您一下 😊'],
+    intro:teacher?'我是 '+firstName+' 的老師 '+teacher+'～ 想跟您聊聊 '+firstName+' 這次 '+CFG.grade+' '+CFG.examName+' 的情形 📝 考完試我習慣仔細看過每個孩子的答卷，把各題得失分整理出來跟家長說明，這樣在家陪孩子練習也更有方向，不用瞎猜。希望對您有幫助！':'想跟您分享一下 '+firstName+' 這次 '+CFG.grade+' '+CFG.examName+' 的考試情形 📝 考完試我有仔細看過答卷，把各題的得失分整理出來，讓您在家陪 '+firstName+' 練習時更有方向，一起配合讓學習更有效率 💪',
     reportTxt:'📊 這次的詳細成績報告在這裡，您可以點開看看各題的表現：',
     noteTxt:'另外想跟您說：',
     sep:'─'.repeat(28),
     wrongHdr:n=>'這次需要複習的題目（共 '+n+' 題）',
     tipLabel:'💡 小提示：',
-    perfect:[firstName+'這次真的超厲害，考了滿分 '+maxScore+' 分 🏆！每一題都答對了，平時紮實的練習完全看得出來！',`滿分！${maxScore} 分！🏆 `+firstName+'這次完全沒有失分，非常了不起！謝謝您一直以來的支持 🙏',firstName+'這次考了滿分 '+maxScore+' 分 🏆，全卷零失分。成果真的很好！'],
-    scoreHigh:firstName+'這次考了 '+st.score+' 分（滿分 '+maxScore+'），表現真的很棒 ⭐ 比班上平均'+(aboveAvg?'高了 '+diffAbs+' 分':'只差了 '+diffAbs+' 分')+'，整體非常紮實！',
-    scoreMid:firstName+'這次考了 '+st.score+' 分（滿分 '+maxScore+'），整體還不錯 ✅ '+(aboveAvg?'比班均高了 '+diffAbs+' 分':'和班均差不多，差了 '+diffAbs+' 分')+'。有幾個地方稍微卡了一下，基礎其實是有的。',
-    scoreLow:firstName+'這次考了 '+st.score+' 分（滿分 '+maxScore+'）🔶 '+(aboveAvg?'比班均高了 '+diffAbs+' 分，':'比班均低了 '+diffAbs+' 分，')+'有幾個概念失分比較多。問題找到了就好辦！',
-    scoreVLow:firstName+'這次考了 '+st.score+' 分（滿分 '+maxScore+'）💪 比班均低了 '+diffAbs+' 分。把問題找出來才是最重要的！咱們一起把這些概念補好。',
-    closeShort:'整體來說'+firstName+'這次表現真的不錯，就差這幾個概念了。針對練習一下，下次更穩！有任何問題隨時找我 😊',
-    closeMid:'以上這幾個概念，建議每天花個 10–15 分鐘，一次專注一個。我在課堂上也會多留意'+firstName+'，有問題隨時跟我說！',
-    closeLong:'題目看起來多，但很多是同類型的，搞懂一個就通了一串。先從失分最多的開始，每週攻一個概念。'+firstName+'有底子的，加把勁一定可以的 💪',
+    perfect:[firstName+' 這次真的超級厲害，考了滿分 '+maxScore+' 分 🏆！每一題都答對了，平時紮實的練習完全看得出來，真的替 '+firstName+' 感到很驕傲！謝謝您在家的陪伴和鼓勵 🙏','滿分！'+maxScore+' 分！🏆 '+firstName+' 這次完全沒有失分，每個概念都掌握得非常扎實，真的很了不起！謝謝您一直以來對 '+firstName+' 學習的支持與陪伴 🙏',firstName+' 這次考了滿分 '+maxScore+' 分 🏆，全卷零失分。看得出來在家有認真複習，孩子真的很棒，您也辛苦了！謝謝您的配合 😊'],
+    scoreHigh:firstName+' 這次考了 '+st.score+' 分（滿分 '+maxScore+'），表現真的很不錯 ⭐ 比班上平均'+(aboveAvg?'高了 '+diffAbs+' 分':'只差了 '+diffAbs+' 分')+'，整體非常紮實！只有少數幾個地方還有點小空間可以補強，我把細節整理在下面，參考看看～',
+    scoreMid:firstName+' 這次考了 '+st.score+' 分（滿分 '+maxScore+'），整體來說還不錯 ✅ '+(aboveAvg?'比班均高了 '+diffAbs+' 分':'和班均差不多，差了 '+diffAbs+' 分')+'。有幾個地方稍微卡了一下，不過基礎其實是有的，針對這幾個概念加強練習一下就能補起來，加油 💪',
+    scoreLow:firstName+' 這次考了 '+st.score+' 分（滿分 '+maxScore+'）🔶 '+(aboveAvg?'比班均高了 '+diffAbs+' 分，':'比班均低了 '+diffAbs+' 分，')+'有幾個概念這次失分比較多。不過沒關係，問題找到了就好辦！我把具體失分的地方整理在下面，有方向地練習，進步會很快的 😊',
+    scoreVLow:firstName+' 這次考了 '+st.score+' 分（滿分 '+maxScore+'）💪 比班均低了 '+diffAbs+' 分，遇到了不少挑戰。我知道看到分數可能有點沮喪，但這正是找出盲點最好的機會！下面我整理了需要補強的概念，我們一起來把這些補起來，相信進步空間很大 😊',
+    closeShort:'整體來說 '+firstName+' 這次表現真的不錯，就差這幾個概念了！針對練習一下，下次一定更穩。有任何問題或想法都歡迎隨時傳訊息給我 😊',
+    closeMid:'針對以上這幾個概念，建議每天花個 10–15 分鐘，一次專注一個慢慢攻，不用著急。我在課堂上也會多關注 '+firstName+' 的狀況，一起加油！有問題隨時找我說喔 😊',
+    closeLong:'看起來題目不少，但很多是同類型的，只要把一個概念搞懂，相關的題目基本上就都會了。建議先從失分最多的概念開始，每週集中攻克一個，比較有效率。'+firstName+' 是有底子的，只要方向對了一定可以的 💪 有問題隨時來找我！',
   };
 
   const greeting=T.greetings[Math.floor(Math.random()*T.greetings.length)];
@@ -1385,6 +1386,14 @@ function select(name){current=sorted.find(s=>s.name===name);renderList();const m
 function filterList(v){renderList(v);}
 function copyMsg(){if(!current)return;navigator.clipboard.writeText(buildMsg(current));alert('已複製！');}
 function copyAll(){const all=sorted.map(s=>'═'.repeat(44)+'\\n【'+s.name+' '+s.score+'分】\\n'+'═'.repeat(44)+'\\n'+buildMsg(s)+'\\n').join('\\n\\n');navigator.clipboard.writeText(all);alert('已複製全部 '+sorted.length+' 則訊息！');}
+const sorted=[...STUDENTS].sort((a,b)=>b.score-a.score);
+function renderList(filter){
+  const f=(filter||'').toLowerCase();
+  document.getElementById('slist').innerHTML=sorted
+    .filter(s=>!f||s.name.toLowerCase().includes(f))
+    .map(s=>'<button class="s-row'+(current&&current.name===s.name?' sel':'')+'" onclick="select(\''+s.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')"><span class="s-name">'+s.name+'</span><span class="s-score" style="color:'+scoreColor(s.score)+'">'+scoreEmoji(s.score)+' '+s.score+'</span></button>')
+    .join('');
+}
 renderList();
 <\/script>
 </body></html>`;
