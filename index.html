@@ -715,7 +715,7 @@ function parseReports(file) {
       if (rows.length < 2) { toast('❌ 報告連結檔案是空的'); return; }
 
       // ── Step 1: Find actual header row (skip title/ID rows at top) ──
-      // Think Academy exports have an ID row before the real header
+      // Some platforms export an ID row before the real header
       const URL_KW = ['link', 'url', '連結', '報告', 'report'];
       const NAME_KW = ['name', '姓名', '名字', '真實', 'real', 'student', '學生', 'nickname', '暱稱', '英文'];
       let hdrIdx = 0;
