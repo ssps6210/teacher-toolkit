@@ -8,13 +8,24 @@ A browser-based exam analysis tool for teachers — upload student results, auto
 
 ## ✨ Features
 
+**Analysis**
 - 📁 Upload student score Excel (`.xlsx`) and auto-parse results
 - 📝 Upload your own question analysis Word doc (`.docx`) — skips AI entirely
 - 🤖 Or let AI (Claude / Gemini / GPT) read exam + answer PDFs and generate explanations
 - 📉 Wrong-question heatmap and per-student breakdown
-- 📨 One-click personalised parent messages (Traditional Chinese or English)
-- 📊 Export full analysis as `.xlsx` with 4 sheets
-- 🛠️ Export parent messages as a standalone `.html` tool
+- 📊 Score distribution bar chart (6 grade bands, auto-generated)
+- 👥 Class roster filter — upload your own class list to filter from whole-school rankings
+
+**Parent Messages**
+- 📨 One-click personalised messages per student (Traditional Chinese or English)
+- 🔍 Real-time student search in the messages panel
+- 🔄 Reshuffle button — regenerate a different random greeting instantly
+- ✅ Sent tracking — marks students as done after you copy, shows "Sent X / Y" progress
+- ⚠️ No-link warning — flags students missing a report URL when a report sheet is uploaded
+
+**Export**
+- 📊 Export full analysis as `.xlsx` with 4 sheets (summary, heatmap, per-student detail, question ranking)
+- 🛠️ Export parent messages as a standalone `.html` tool (works offline, no install needed)
 - 🔒 Fully client-side — no data ever leaves your browser
 
 ---
@@ -26,9 +37,10 @@ A browser-based exam analysis tool for teachers — upload student results, auto
    - Required: student score `.xlsx` (must have `Real Name`, `Total Score`, `Q1`, `Q2`… columns)
    - Required: question analysis `.docx` (your own write-up) **or** exam + answer `.pdf` files for AI
    - Optional: report link `.xlsx` (name → URL mapping, auto-inserted into messages)
+   - Optional: class roster `.xlsx` (filter results to your own class when scores are from a whole-school system)
 3. **Step 2 — Configure:** set grade, class, exam name, teacher name, language
 4. **Step 3 — Generate:** click ⚡ and let the system run all tasks
-5. **Step 4 — Preview** parent messages per student, copy to WhatsApp
+5. **Step 4 — Preview** parent messages per student; use 🔍 search, 🔄 reshuffle, and ✅ sent tracking
 6. **Step 5 — Download** `.xlsx` analysis and `.html` message tool
 
 ---

@@ -153,8 +153,11 @@
   }
   .student-row:hover { border-color: var(--border2); }
   .student-row.selected { border-color: var(--accent); background: #e8c54710; }
-  .s-name { flex: 1; font-size: 13px; font-weight: 500; }
+  .student-row.sent { opacity: 0.55; }
+  .student-row.sent.selected { opacity: 1; }
+  .s-name { flex: 1; font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .s-score { font-family: var(--mono); font-size: 12px; }
+  .no-link-tag { font-size: 9px; font-family: var(--mono); color: var(--orange); background: #fb923c15; border: 1px solid #fb923c30; border-radius: 3px; padding: 1px 4px; margin-left: 5px; vertical-align: middle; flex-shrink: 0; }
   .msg-box {
     background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
     padding: 20px; font-size: 13.5px; line-height: 1.9; white-space: pre-wrap;
@@ -287,6 +290,13 @@
             <div class="uz-hint">含學生姓名 + 報告 URL 的 Excel，會自動附在家長訊息裡</div>
             <div class="uz-filename" id="fname-reports">未上傳（可選）</div>
           </div>
+          <div class="upload-zone" id="zone-roster" ondragover="drag(event)" ondrop="drop(event,'roster')">
+            <input type="file" accept=".xlsx,.xls" onchange="handleFile(event,'roster')">
+            <span class="uz-icon">👥</span>
+            <div class="uz-label">班級名單 <span style="color:var(--muted)">（選填）</span></div>
+            <div class="uz-hint">成績為全校排名時，上傳自己班的名單，只分析和傳訊班內學生</div>
+            <div class="uz-filename" id="fname-roster">未上傳（可選）</div>
+          </div>
         </div>
 
         <div id="scores-preview" style="display:none;">
@@ -404,13 +414,20 @@
 
         <div style="display:flex; gap:20px; flex-wrap:wrap;">
           <div style="flex:0 0 220px; min-width:180px;">
-            <div class="section-label">學生列表（依分數排序）</div>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid var(--border);">
+              <span style="font-size:10px; font-family:var(--mono); color:var(--muted); text-transform:uppercase; letter-spacing:1.5px;">學生列表</span>
+              <span id="sent-counter" style="font-size:10px; font-family:var(--mono); color:var(--green);"></span>
+            </div>
+            <input id="student-search" type="text" placeholder="🔍 搜尋學生名字…" oninput="renderMessages()" style="width:100%;padding:7px 10px;margin-bottom:8px;border-radius:8px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:12px;outline:none;box-sizing:border-box;" />
             <div class="student-list" id="student-list"></div>
           </div>
           <div style="flex:1; min-width:280px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
               <div class="section-label" style="margin-bottom:0;">訊息預覽</div>
-              <button class="btn btn-green" onclick="copyMsg()" id="copy-btn" style="padding:8px 16px; font-size:12px;">📋 複製</button>
+              <div style="display:flex; gap:8px;">
+                <button class="btn btn-ghost" onclick="reshuffleMsg()" title="重新隨機生成問候語" style="padding:8px 10px; font-size:13px;">🔄</button>
+                <button class="btn btn-green" onclick="copyMsg()" id="copy-btn" style="padding:8px 16px; font-size:12px;">📋 複製</button>
+              </div>
             </div>
             <div class="msg-box" id="msg-preview">← 請從左側選擇學生</div>
             <div class="btn-row" style="margin-top:12px;">
@@ -479,6 +496,8 @@ const state = {
   xlsxBlob: null,
   msgHtml: null,
   currentStudent: null,
+  sentStudents: new Set(),
+  classRoster: null,
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -505,6 +524,7 @@ function processFile(file, key) {
   if (key === 'scores')  parseScores(file);
   if (key === 'doc')     parseDocx(file);
   if (key === 'reports') parseReports(file);
+  if (key === 'roster')  parseRoster(file);
 }
 
 function parseScores(file) {
@@ -680,8 +700,11 @@ function parseDocText(text) {
 
 // ═══════════════════════════════════════════════════════════════
 // PARSE REPORTS EXCEL — extract student name → report URL map
-// Supports: nickname | full name | ... | Report Link (any column order)
 // ═══════════════════════════════════════════════════════════════
+function normName(s) {
+  return String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
 function parseReports(file) {
   const reader = new FileReader();
   reader.onload = e => {
@@ -689,56 +712,82 @@ function parseReports(file) {
       const wb = XLSX.read(e.target.result, { type: 'array' });
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+      if (rows.length < 2) { toast('❌ 報告連結檔案是空的'); return; }
 
-      // Find URL column — scan first 3 data rows for http links
-      let urlCol = -1;
-      for (let r = 1; r <= Math.min(4, rows.length - 1); r++) {
-        rows[r].forEach((cell, ci) => {
-          if (typeof cell === 'string' && cell.startsWith('http') && urlCol < 0) urlCol = ci;
-        });
-        if (urlCol >= 0) break;
+      // ── Step 1: Find actual header row (skip title/ID rows at top) ──
+      // Think Academy exports have an ID row before the real header
+      const URL_KW = ['link', 'url', '連結', '報告', 'report'];
+      const NAME_KW = ['name', '姓名', '名字', '真實', 'real', 'student', '學生', 'nickname', '暱稱', '英文'];
+      let hdrIdx = 0;
+      for (let r = 0; r < Math.min(5, rows.length); r++) {
+        const row = rows[r];
+        if (row.some(c => {
+          const v = String(c || '').toLowerCase();
+          return v.includes('student name') || v.includes('report link') || v === 'report';
+        })) { hdrIdx = r; break; }
       }
-      if (urlCol < 0) { toast('❌ 找不到 URL 欄位（需包含 http 開頭的連結）'); return; }
+      const hdrRow = (rows[hdrIdx] || []).map(h => String(h || '').toLowerCase().trim());
 
-      // Find name columns (all columns before URL that look like names, skip Tel/Email/Score)
-      const hdrRow = rows[0] || [];
-      const nameCols = [];
+      // ── Step 2: Find first URL column (within first repeating group) ──
+      let urlCol = hdrRow.findIndex(h => URL_KW.some(kw => h.includes(kw)));
+      if (urlCol < 0) {
+        outer: for (let r = hdrIdx + 1; r <= Math.min(hdrIdx + 5, rows.length - 1); r++) {
+          for (let ci = 0; ci < rows[r].length; ci++) {
+            if (String(rows[r][ci] || '').trim().startsWith('http')) { urlCol = ci; break outer; }
+          }
+        }
+      }
+      if (urlCol < 0) { toast('❌ 找不到連結欄位（欄位標題含「連結」或值以 http 開頭）'); return; }
+
+      // ── Step 3: Find name columns — only within first group (cols 0 to urlCol-1) ──
+      let nameCols = [];
       for (let ci = 0; ci < urlCol; ci++) {
-        const hdr = String(hdrRow[ci] || '').toLowerCase();
-        // Skip obvious non-name columns
-        if (hdr.includes('tel') || hdr.includes('phone') || hdr.includes('email') ||
-            hdr.includes('mail') || hdr.includes('score') || hdr.includes('分')) continue;
-        nameCols.push(ci);
+        if (NAME_KW.some(kw => hdrRow[ci] && hdrRow[ci].includes(kw))) nameCols.push(ci);
       }
-      // If no headers help, just use cols 0 and 1
-      if (nameCols.length === 0) nameCols.push(0, 1);
+      // Fallback: scan first data rows for name-like values in pre-URL cols
+      if (nameCols.length === 0) {
+        for (let ci = 0; ci < urlCol; ci++) {
+          const sample = rows.slice(hdrIdx + 1, hdrIdx + 6).map(r => String(r[ci] || '').trim()).filter(Boolean);
+          if (sample.length > 0 && sample.every(v =>
+            v.length >= 2 && v.length <= 25 && /[a-zA-Z一-鿿]/.test(v) && !/^\d+$/.test(v)
+          )) nameCols.push(ci);
+        }
+      }
+      if (nameCols.length === 0) nameCols = [0];
 
+      // ── Step 4: Build lookup — read only first group per row (data repeats across groups) ──
       state.reportLinks = {};
       let count = 0;
-      for (let i = 1; i < rows.length; i++) {
+      for (let i = hdrIdx + 1; i < rows.length; i++) {
         const row = rows[i];
-        const url = String(row[urlCol] || '').trim();
+        let url = String(row[urlCol] || '').trim();
+        if (!url.startsWith('http')) {
+          const cell = ws[XLSX.utils.encode_cell({ r: i, c: urlCol })];
+          if (cell && cell.l && cell.l.Target) url = cell.l.Target;
+        }
         if (!url.startsWith('http')) continue;
 
-        // Register every name variant for this URL
+        let added = false;
         nameCols.forEach(ci => {
           const raw = String(row[ci] || '').trim();
           if (!raw || raw.length < 2) return;
-          // Store full name, lowercase
-          state.reportLinks[raw.toLowerCase()] = url;
-          // Store first word (nickname / first name)
-          state.reportLinks[raw.split(/\s+/)[0].toLowerCase()] = url;
-          // Store last word (surname)
-          const parts = raw.split(/\s+/);
-          if (parts.length > 1) state.reportLinks[parts[parts.length-1].toLowerCase()] = url;
+          const norm = normName(raw);
+          // Store full name
+          state.reportLinks[norm] = url;
+          // Store without spaces (handles "JohnSmith" vs "John Smith")
+          const nospace = norm.replace(/\s+/g, '');
+          if (nospace !== norm) state.reportLinks[nospace] = url;
+          // Store with single-letter words removed (handles middle initials: "Stanley C Cao" → "stanley cao")
+          const noMiddle = norm.split(' ').filter(w => w.length > 1).join(' ');
+          if (noMiddle !== norm && noMiddle.length >= 2) state.reportLinks[noMiddle] = url;
+          added = true;
         });
-        count++;
+        if (added) count++;
       }
 
-      toast(`✅ 報告連結讀取成功：${count} 位學生`);
-      // Show preview
-      document.getElementById('fname-reports').textContent =
-        `${file.name}（${count} 筆）`;
+      const usedHdrs = nameCols.map(ci => hdrRow[ci] || `第${ci+1}欄`).join('、');
+      toast(`✅ 連結讀取成功：${count} 筆，比對欄位：${usedHdrs}`);
+      document.getElementById('fname-reports').textContent = `${file.name}（${count} 筆）`;
     } catch(err) { toast('❌ 報告連結讀取失敗：' + err.message); }
   };
   reader.readAsArrayBuffer(file);
@@ -746,24 +795,89 @@ function parseReports(file) {
 
 function getReportLink(studentName) {
   if (!state.reportLinks || Object.keys(state.reportLinks).length === 0) return null;
-  const name = studentName.trim().toLowerCase();
-  const parts = name.split(/\s+/);
-  // Try: full name, first word, last word
-  const tries = [name, parts[0], parts[parts.length - 1]];
-  for (const t of tries) {
+  const norm = normName(studentName);
+  const nospace = norm.replace(/\s+/g, '');
+  const noMiddle = norm.split(' ').filter(w => w.length > 1).join(' ');
+  // Try exact variants only — no fuzzy/startsWith (causes false matches like "wan"→"wang")
+  for (const t of new Set([norm, nospace, noMiddle])) {
     if (state.reportLinks[t]) return state.reportLinks[t];
-  }
-  // Fuzzy: check if any stored key contains our first name or vice versa
-  for (const [key, url] of Object.entries(state.reportLinks)) {
-    if (key.includes(parts[0]) || parts[0].includes(key.split(/\s+/)[0])) return url;
   }
   return null;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// PARSE ROSTER — optional class list to filter students
+// ═══════════════════════════════════════════════════════════════
+function parseRoster(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+      if (rows.length < 1) { toast('❌ 班級名單是空的'); return; }
+
+      // Find header row
+      let hdrIdx = 0;
+      for (let r = 0; r < Math.min(5, rows.length); r++) {
+        if (rows[r].some(c => { const v = String(c||'').toLowerCase(); return v.includes('name') || v.includes('姓名') || v.includes('student'); })) { hdrIdx = r; break; }
+      }
+      const hdrRow = (rows[hdrIdx] || []).map(h => String(h||'').toLowerCase().trim());
+
+      // Find name column
+      const NAME_KW = ['name', '姓名', '名字', 'real', 'student', '學生', '真實'];
+      let nameCol = hdrRow.findIndex(h => NAME_KW.some(kw => h.includes(kw)));
+      if (nameCol < 0) {
+        for (let ci = 0; ci < hdrRow.length; ci++) {
+          const sample = rows.slice(hdrIdx+1, hdrIdx+6).map(r => String(r[ci]||'').trim()).filter(Boolean);
+          if (sample.length > 0 && sample.every(v => v.length >= 2 && v.length <= 30 && /[a-zA-Z一-鿿]/.test(v) && !/^\d+$/.test(v))) { nameCol = ci; break; }
+        }
+      }
+      if (nameCol < 0) nameCol = 0;
+
+      const roster = new Set();
+      let rawCount = 0;
+      for (let i = hdrIdx + 1; i < rows.length; i++) {
+        const raw = String(rows[i][nameCol] || '').trim();
+        if (!raw || raw.length < 2) continue;
+        const n = normName(raw);
+        roster.add(n);
+        roster.add(n.replace(/\s+/g, ''));
+        const noMiddle = n.split(' ').filter(w => w.length > 1).join(' ');
+        if (noMiddle !== n) roster.add(noMiddle);
+        rawCount++;
+      }
+
+      state.classRoster = roster;
+      const matched = activeStudents().length;
+      const hint = state.students.length > 0 ? `，與成績配對 ${matched} 位` : '';
+      toast(`✅ 班級名單載入：${rawCount} 位學生${hint}`);
+      document.getElementById('fname-roster').textContent = `${file.name}（${rawCount} 人）`;
+      if (state.students.length > 0) renderScoresPreview();
+    } catch(err) { toast('❌ 班級名單讀取失敗：' + err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function activeStudents() {
+  if (!state.classRoster || state.classRoster.size === 0) return state.students;
+  return state.students.filter(s => {
+    const n = normName(s.name);
+    return state.classRoster.has(n) || state.classRoster.has(n.replace(/\s+/g,'')) || state.classRoster.has(n.split(' ').filter(w=>w.length>1).join(' '));
+  });
+}
+
 function renderScoresPreview() {
-  const sorted = [...state.students].sort((a,b) => b.score - a.score);
+  const all = state.students;
+  const filtered = activeStudents();
+  const sorted = [...filtered].sort((a,b) => b.score - a.score);
+  const filterBadge = state.classRoster && state.classRoster.size > 0
+    ? `<span style="margin-left:10px;font-size:10px;font-family:var(--mono);color:var(--orange);background:#fb923c15;border:1px solid #fb923c30;border-radius:4px;padding:2px 7px;">👥 班級過濾中：${filtered.length} / ${all.length} 位</span>`
+    : '';
   const wrap = document.getElementById('scores-table-wrap');
-  wrap.innerHTML = `<table class="q-table">
+  wrap.innerHTML = `
+    <div style="margin-bottom:10px;font-size:12px;color:var(--muted);">顯示 ${filtered.length} 位已提交學生${filterBadge}</div>
+    <table class="q-table">
     <tr><th>#</th><th>姓名</th><th>總分</th><th>失分題數</th></tr>
     ${sorted.map((s,i) => `<tr>
       <td style="color:var(--muted);font-family:var(--mono)">${i+1}</td>
@@ -1171,7 +1285,7 @@ function buildMsg(student) {
       `${firstName} 的家長，打擾您一下 😊`,
     ],
     intro:      teacher
-      ? `我是 ${firstName} 的老師 ${teacher}～ 想跟您聊聊 ${firstName} 這次 ${grade} ${examName} 的情形 📝 考完試我習慣仔細看過每個孩子的答卷，把各題得失分整理出來跟家長說明，這樣在家陪孩子練習也更有方向，不用瞎猜。希望對您有幫助！`
+      ? `我是 ${firstName} 的老師 ${teacher}～ 想跟您聊聊 ${firstName} 這次 ${grade} ${examName} 的情形 📝 考完試我習慣仔細看過每個孩子的答卷，把各題得失分整理出來跟家長說明，這樣在家陪孩子練習也更有方向。希望對您有幫助！`
       : `想跟您分享一下 ${firstName} 這次 ${grade} ${examName} 的考試情形 📝 考完試我有仔細看過答卷，把各題的得失分整理出來，讓您在家陪 ${firstName} 練習時更有方向，一起配合讓學習更有效率 💪`,
     reportTxt:  `📊 這次的詳細成績報告在這裡，您可以點開看看各題的表現：`,
     noteTxt:    `另外想跟您說：`,
@@ -1307,11 +1421,10 @@ function scoreEmoji(s){return s===100?'🏆':s>=90?'⭐':s>=80?'✅':s>=70?'🔶
 
 function getReportLink(name){
   if(!REPORT_LINKS||!Object.keys(REPORT_LINKS).length) return null;
-  const n=name.trim().toLowerCase();
-  const parts=n.split(/\\s+/);
-  const tries=[n,parts[0],parts[parts.length-1]];
-  for(const t of tries){if(REPORT_LINKS[t])return REPORT_LINKS[t];}
-  for(const[k,u]of Object.entries(REPORT_LINKS)){if(k.includes(parts[0])||parts[0].includes(k.split(/\\s+/)[0]))return u;}
+  const norm=name.trim().toLowerCase().replace(/\\s+/g,' ');
+  const nospace=norm.replace(/\\s+/g,'');
+  const noMiddle=norm.split(' ').filter(w=>w.length>1).join(' ');
+  for(const t of[norm,nospace,noMiddle]){if(REPORT_LINKS[t])return REPORT_LINKS[t];}
   return null;
 }
 function buildMsg(st){
@@ -1345,7 +1458,7 @@ function buildMsg(st){
     closeLong:"It might look like a lot, but many are the same type — crack one and the rest follow. Start with the biggest point-losers, one concept a week. "+firstName+" has the ability 💪 I'm here if you need me!",
   }:{
     greetings:['嗨！'+firstName+' 的家長您好 😊',firstName+' 的爸媽/家長您好～','哈囉！'+firstName+' 的家長，你好！',firstName+' 的家長，打擾您一下 😊'],
-    intro:teacher?'我是 '+firstName+' 的老師 '+teacher+'～ 想跟您聊聊 '+firstName+' 這次 '+CFG.grade+' '+CFG.examName+' 的情形 📝 考完試我習慣仔細看過每個孩子的答卷，把各題得失分整理出來跟家長說明，這樣在家陪孩子練習也更有方向，不用瞎猜。希望對您有幫助！':'想跟您分享一下 '+firstName+' 這次 '+CFG.grade+' '+CFG.examName+' 的考試情形 📝 考完試我有仔細看過答卷，把各題的得失分整理出來，讓您在家陪 '+firstName+' 練習時更有方向，一起配合讓學習更有效率 💪',
+    intro:teacher?'我是 '+firstName+' 的老師 '+teacher+'～ 想跟您聊聊 '+firstName+' 這次 '+CFG.grade+' '+CFG.examName+' 的情形 📝 考完試我習慣仔細看過每個孩子的答卷，把各題得失分整理出來跟家長說明，這樣在家陪孩子練習也更有方向。希望對您有幫助！':'想跟您分享一下 '+firstName+' 這次 '+CFG.grade+' '+CFG.examName+' 的考試情形 📝 考完試我有仔細看過答卷，把各題的得失分整理出來，讓您在家陪 '+firstName+' 練習時更有方向，一起配合讓學習更有效率 💪',
     reportTxt:'📊 這次的詳細成績報告在這裡，您可以點開看看各題的表現：',
     noteTxt:'另外想跟您說：',
     sep:'─'.repeat(28),
@@ -1403,33 +1516,53 @@ renderList();
 // MESSAGES PANEL
 // ═══════════════════════════════════════════════════════════════
 function renderMessages() {
-  const sorted = [...state.students].sort((a,b) => b.score - a.score);
+  const q = (document.getElementById('student-search')?.value || '').toLowerCase();
+  const hasLinks = Object.keys(state.reportLinks).length > 0;
+  const mx = parseInt(document.getElementById('cfg-max')?.value) || 100;
+  const sorted = [...activeStudents()].sort((a,b) => b.score - a.score).filter(s => !q || s.name.toLowerCase().includes(q));
+
+  // Update sent counter
+  const sentCount = sorted.filter(s => state.sentStudents.has(s.name)).length;
+  const counter = document.getElementById('sent-counter');
+  if (counter) counter.textContent = sentCount > 0 ? `已傳 ${sentCount} / ${sorted.length}` : '';
+
   const list = document.getElementById('student-list');
-  list.innerHTML = sorted.map(s => `
-    <div class="student-row ${state.currentStudent?.name===s.name?'selected':''}" onclick="selectStudent('${s.name}')">
-      <span style="font-size:16px">${(()=>{const mx=parseInt(document.getElementById('cfg-max')?.value)||100;return s.score>=mx?'🏆':s.score/mx>=0.9?'⭐':s.score/mx>=0.7?'✅':s.score/mx>=0.55?'🔶':'💪';})()}</span>
-      <span class="s-name">${s.name}</span>
-      <span class="s-score" style="color:${s.score>=90?'var(--green)':s.score>=70?'var(--accent)':'var(--red)'}">${s.score}</span>
-    </div>`).join('');
+  list.innerHTML = sorted.map(s => {
+    const emoji = s.score >= mx ? '🏆' : s.score/mx >= 0.9 ? '⭐' : s.score/mx >= 0.7 ? '✅' : s.score/mx >= 0.55 ? '🔶' : '💪';
+    const sent = state.sentStudents.has(s.name);
+    const noLink = hasLinks && !getReportLink(s.name);
+    const safeName = s.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return `<div class="student-row${state.currentStudent?.name===s.name?' selected':''}${sent?' sent':''}" onclick="selectStudent('${safeName}')">
+      <span style="font-size:16px">${emoji}</span>
+      <span class="s-name">${s.name}${noLink ? '<span class="no-link-tag">⚠️無連結</span>' : ''}</span>
+      <span class="s-score" style="color:${sent?'var(--green)':s.score>=90?'var(--green)':s.score>=70?'var(--accent)':'var(--red)'}">${sent ? '✓' : s.score}</span>
+    </div>`;
+  }).join('');
 }
 
 function selectStudent(name) {
   state.currentStudent = state.students.find(s => s.name === name);
   renderMessages();
-  const msg = buildMsg(state.currentStudent);
-  document.getElementById('msg-preview').textContent = msg;
+  document.getElementById('msg-preview').textContent = buildMsg(state.currentStudent);
+}
+
+function reshuffleMsg() {
+  if (!state.currentStudent) return;
+  document.getElementById('msg-preview').textContent = buildMsg(state.currentStudent);
 }
 
 function copyMsg() {
   if (!state.currentStudent) return toast('請先選擇學生');
   navigator.clipboard.writeText(buildMsg(state.currentStudent));
+  state.sentStudents.add(state.currentStudent.name);
+  renderMessages();
   const btn = document.getElementById('copy-btn');
   btn.textContent = '✅ 已複製！';
   setTimeout(() => btn.textContent = '📋 複製', 2000);
 }
 
 function copyAllMsgs() {
-  const sorted = [...state.students].sort((a,b) => b.score - a.score);
+  const sorted = [...activeStudents()].sort((a,b) => b.score - a.score);
   const all = sorted.map(s => `${'═'.repeat(44)}\n【${s.name} ${s.score}分】\n${'═'.repeat(44)}\n${buildMsg(s)}\n`).join('\n\n');
   navigator.clipboard.writeText(all);
   toast(`✅ 已複製全部 ${sorted.length} 則訊息！`);
@@ -1489,18 +1622,52 @@ function markStepsDone() {
   });
 }
 
+function renderChart(students) {
+  const mx = parseInt(document.getElementById('cfg-max')?.value) || 100;
+  const buckets = [
+    { label: '< 60%',  color: 'var(--red)',    test: s => s.score / mx < 0.6 },
+    { label: '60–70%', color: 'var(--orange)',  test: s => s.score / mx >= 0.6 && s.score / mx < 0.7 },
+    { label: '70–80%', color: '#facc15',        test: s => s.score / mx >= 0.7 && s.score / mx < 0.8 },
+    { label: '80–90%', color: 'var(--accent2)', test: s => s.score / mx >= 0.8 && s.score / mx < 0.9 },
+    { label: '90–99%', color: 'var(--green)',   test: s => s.score / mx >= 0.9 && s.score / mx < 1 },
+    { label: '滿分',   color: '#fbbf24',        test: s => s.score >= mx },
+  ];
+  const counts = buckets.map(b => students.filter(b.test).length);
+  const peak = Math.max(...counts, 1);
+  const bars = buckets.map((b, i) => {
+    const h = Math.round((counts[i] / peak) * 90);
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:110px;">
+      <span style="font-size:11px;font-family:var(--mono);color:${counts[i]?'var(--text)':'transparent'};margin-bottom:4px;">${counts[i]}</span>
+      <div style="width:calc(100% - 6px);height:${h}px;background:${b.color};border-radius:3px 3px 0 0;min-height:${counts[i]?3:0}px;opacity:0.85;"></div>
+    </div>`;
+  }).join('');
+  const labels = buckets.map(b =>
+    `<div style="flex:1;text-align:center;font-size:9px;color:var(--muted);padding-top:5px;line-height:1.4;">${b.label}</div>`
+  ).join('');
+  return `<div style="margin-top:28px;">
+    <div style="font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">成績分佈</div>
+    <div style="display:flex;gap:4px;border-bottom:1px solid var(--border2);">${bars}</div>
+    <div style="display:flex;gap:4px;">${labels}</div>
+  </div>`;
+}
+
 function renderSummary() {
-  const students = state.students;
-  const avg = (students.reduce((s,st)=>s+st.score,0)/students.length).toFixed(1);
-  const perfect = students.filter(s=>s.score===100).length;
-  const above80 = students.filter(s=>s.score>=80).length;
+  const students = activeStudents();
+  const mx = parseInt(document.getElementById('cfg-max')?.value) || 100;
+  const avg = students.length ? (students.reduce((s,st)=>s+st.score,0)/students.length).toFixed(1) : '—';
+  const perfect = students.filter(s => s.score >= mx).length;
+  const above80 = students.filter(s => s.score / mx >= 0.8).length;
+  const rosterNote = state.classRoster && state.classRoster.size > 0
+    ? `<div style="margin-top:6px;font-size:11px;color:var(--orange);">👥 班級過濾中（${students.length} / ${state.students.length} 位）</div>` : '';
   document.getElementById('summary-stats').innerHTML = `
     <div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:8px;">
       <div><div style="font-size:22px;font-weight:800;color:var(--accent)">${avg}</div><div style="font-size:11px;color:var(--muted)">班級平均</div></div>
       <div><div style="font-size:22px;font-weight:800;color:var(--green)">${perfect}</div><div style="font-size:11px;color:var(--muted)">滿分人數</div></div>
       <div><div style="font-size:22px;font-weight:800;color:var(--accent2)">${students.length}</div><div style="font-size:11px;color:var(--muted)">已提交人數</div></div>
       <div><div style="font-size:22px;font-weight:800;color:var(--text)">${above80}</div><div style="font-size:11px;color:var(--muted)">80分以上</div></div>
-    </div>`;
+    </div>
+    ${rosterNote}
+    ${renderChart(students)}`;
   document.getElementById('dl-xlsx').disabled = false;
   document.getElementById('dl-html').disabled = false;
 }
