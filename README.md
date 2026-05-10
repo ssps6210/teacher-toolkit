@@ -52,6 +52,7 @@ A browser-based exam analysis tool for teachers — upload student results, auto
 | Claude (Anthropic) | `sk-ant-...` | [console.anthropic.com](https://console.anthropic.com) |
 | Gemini (Google) | `AIza...` | [aistudio.google.com](https://aistudio.google.com) |
 | GPT (OpenAI) | `sk-...` | [platform.openai.com](https://platform.openai.com) |
+| MiMo (小米) | `tp-...` | 小米 MiMo 月訂閱 API |
 
 > API keys are stored in-browser only and never transmitted anywhere except the chosen provider.
 
@@ -62,7 +63,7 @@ A browser-based exam analysis tool for teachers — upload student results, auto
 - Pure HTML / CSS / JavaScript — zero build step, zero dependencies to install
 - [SheetJS](https://sheetjs.com/) for Excel parsing and generation
 - [Mammoth.js](https://github.com/mwilliamson/mammoth.js) for Word doc parsing
-- Anthropic / Google / OpenAI APIs (optional, only if you provide a key)
+- Anthropic / Google / OpenAI / 小米 MiMo APIs (optional, only if you provide a key)
 
 ---
 

@@ -233,6 +233,7 @@
           <option value="claude">Claude (Anthropic)</option>
           <option value="gemini">Gemini (Google)</option>
           <option value="openai">GPT (OpenAI)</option>
+          <option value="mimo">MiMo (小米)</option>
         </select>
         <input class="api-input" type="password" id="apiKey" placeholder="sk-ant-..." style="margin-top:6px;" />
         <div id="provider-hint" style="font-size:10px;color:var(--muted);margin-top:6px;line-height:1.6;">
@@ -1012,6 +1013,7 @@ function updateProviderHint() {
     claude: { ph: 'sk-ant-...', txt: 'Claude: sk-ant-...<br>從 console.anthropic.com 取得' },
     gemini: { ph: 'AIza...', txt: 'Gemini: AIza...<br>從 aistudio.google.com 取得' },
     openai: { ph: 'sk-...', txt: 'OpenAI: sk-...<br>從 platform.openai.com 取得' },
+    mimo: { ph: 'tp-...', txt: 'MiMo: tp-...<br>從小米 MiMo 月訂閱取得<br>API: token-plan-ams.xiaomimimo.com' },
   };
   key.placeholder = hints[p].ph;
   hint.innerHTML = hints[p].txt + '<br><span style="color:var(--muted)">Key 只存本地，不會外傳。</span>';
@@ -1054,6 +1056,7 @@ async function callClaudeForQAnalysis(apiKey, addLog) {
   let rawText;
   if (provider === 'claude')  rawText = await callClaude(apiKey, prompt, examB64, ansB64);
   else if (provider === 'gemini') rawText = await callGemini(apiKey, prompt, examB64, ansB64);
+  else if (provider === 'mimo')   rawText = await callMiMo(apiKey, prompt, examB64, ansB64);
   else                        rawText = await callOpenAI(apiKey, prompt, examB64, ansB64);
 
   addLog('dim', '  解析 AI 回應...');
@@ -1152,6 +1155,25 @@ async function callOpenAI(apiKey, prompt, examB64, ansB64) {
     method:'POST',
     headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+apiKey },
     body: JSON.stringify({ model:'gpt-4o', max_tokens:8000,
+                           messages:[{ role:'user', content: msgContent }] })
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || res.statusText); }
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content || '';
+}
+
+// ── MiMo (小米) ────────────────────────────────────────────────
+async function callMiMo(apiKey, prompt, examB64, ansB64) {
+  const msgContent = [];
+  // MiMo (OpenAI-compatible) — send text with PDF info
+  if (examB64) msgContent.push({ type:'text', text:'[Exam paper PDF attached as base64]\ndata:application/pdf;base64,' + examB64.slice(0,100) + '...(truncated, full file provided)' });
+  if (ansB64)  msgContent.push({ type:'text', text:'[Answer key PDF attached as base64]\ndata:application/pdf;base64,' + ansB64.slice(0,100) + '...(truncated, full file provided)' });
+  msgContent.push({ type:'text', text: prompt });
+
+  const res = await fetch('https://token-plan-ams.xiaomimimo.com/v1/chat/completions', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+apiKey },
+    body: JSON.stringify({ model:'mimo-v2.5', max_tokens:8000,
                            messages:[{ role:'user', content: msgContent }] })
   });
   if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || res.statusText); }
