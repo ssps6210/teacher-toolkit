@@ -1,53 +1,93 @@
-# 📊 Teacher Toolkit · 教師幫手
+# 📊 Teacher Toolkit · 考試分析系統
 
-A browser-based exam analysis tool for teachers. Upload student results, auto-match answers, identify weak areas, and generate parent messages — all in one place.
+A browser-based exam analysis tool for teachers — upload student results, auto-generate parent messages, and export everything with zero setup.
 
-## 🚀 Features
+🌐 **[Live Demo → ssps6210.github.io/teacher-toolkit](https://ssps6210.github.io/teacher-toolkit/)**
 
-- 📁 Upload Excel / Word result files
-- ✅ Auto-match student answers against answer keys
-- 📉 Analyse wrong questions and identify patterns
-- 📨 Generate parent notification messages automatically
-- 🌐 Traditional Chinese UI
-- 🔒 Fully client-side — no data leaves your browser
+---
 
-## 🎮 Try Now
+## ✨ Features
 
-**[▶ Open in your browser](https://ssps6210.github.io/teacher-toolkit)** — no installation required!
+**Analysis**
+- 📁 Upload student score Excel (`.xlsx`) and auto-parse results
+- 📝 Upload your own question analysis Word doc (`.docx`) — skips AI entirely
+- 🤖 Or let AI (Claude / Gemini / GPT) read exam + answer PDFs and generate explanations
+- 📉 Wrong-question heatmap and per-student breakdown
+- 📊 Score distribution bar chart (6 grade bands, auto-generated)
+- 👥 Class roster filter — upload your own class list to filter from whole-school rankings
+
+**Parent Messages**
+- 📨 One-click personalised messages per student (Traditional Chinese, Simplified Chinese, or English)
+- 🔍 Real-time student search in the messages panel
+- 🔄 Reshuffle button — regenerate a different random greeting instantly
+- ✅ Sent tracking — marks students as done after you copy, shows "Sent X / Y" progress
+- ⚠️ No-link warning — flags students missing a report URL when a report sheet is uploaded
+
+**Export**
+- 📊 Export full analysis as `.xlsx` with 4 sheets (summary, heatmap, per-student detail, question ranking)
+- 🛠️ Export parent messages as a standalone `.html` tool (works offline, no install needed)
+- 🔒 Fully client-side — no data ever leaves your browser
+
+---
 
 ## 🎯 How to Use
 
-1. Open the link above or `index.html` locally
-2. Upload your student result file (`.xlsx` or `.docx`)
-3. Input or upload the answer key
-4. View analysis and wrong-question breakdown
-5. Generate and copy parent messages
+1. Go to the [live demo](https://ssps6210.github.io/teacher-toolkit/) or open `index.html` locally
+2. **Step 1 — Upload files:**
+   - Required: student score `.xlsx` (must have `Real Name`, `Total Score`, `Q1`, `Q2`… columns)
+   - Required: question analysis `.docx` (your own write-up) **or** exam + answer `.pdf` files for AI
+   - Optional: report link `.xlsx` (name → URL mapping, auto-inserted into messages)
+   - Optional: class roster `.xlsx` (filter results to your own class when scores are from a whole-school system)
+3. **Step 2 — Configure:** set grade, class, exam name, teacher name, language
+4. **Step 3 — Generate:** click ⚡ and let the system run all tasks
+5. **Step 4 — Preview** parent messages per student; use 🔍 search, 🔄 reshuffle, and ✅ sent tracking
+6. **Step 5 — Download** `.xlsx` analysis and `.html` message tool
+
+---
+
+## 🤖 Supported AI Providers
+
+| Provider | Key format | Where to get |
+|----------|-----------|--------------|
+| Claude (Anthropic) | `sk-ant-...` | [console.anthropic.com](https://console.anthropic.com) |
+| Gemini (Google) | `AIza...` | [aistudio.google.com](https://aistudio.google.com) |
+| GPT (OpenAI) | `sk-...` | [platform.openai.com](https://platform.openai.com) |
+| MiMo (小米) | `tp-...` | 小米 MiMo 月訂閱 API |
+
+> API keys are stored in-browser only and never transmitted anywhere except the chosen provider.
+
+---
 
 ## 🛠️ Tech Stack
 
-- Pure HTML / CSS / JavaScript
-- React (via CDN) + Babel Standalone
-- [SheetJS](https://sheetjs.com/) for Excel parsing
-- [Mammoth.js](https://github.com/mwilliamson/mammoth.js) for Word parsing
+- Pure HTML / CSS / JavaScript — zero build step, zero dependencies to install
+- [SheetJS](https://sheetjs.com/) for Excel parsing and generation
+- [Mammoth.js](https://github.com/mwilliamson/mammoth.js) for Word doc parsing
+- Anthropic / Google / OpenAI / 小米 MiMo APIs (optional, only if you provide a key)
+
+---
+
+## ☕ Support
+
+If this tool has saved you time, consider buying me a coffee!
+
+<a href="https://www.buymeacoffee.com/ssps6210noa" target="_blank">
+  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height:60px;width:217px;" />
+</a>
+
+---
 
 ## 📁 Version History
 
 | File | Description |
 |------|-------------|
-| `teacher_toolkit(8).html` | Latest version |
-| `teacher_toolkit.html` – `(6).html` | Previous versions |
-| `parent_message_generator.jsx` | Message generator component |
+| `index.html` | Latest version (v8) |
+| `teacher_toolkit(8).html` | Source for current index |
+| `teacher_toolkit.html` – `(7).html` | Previous versions |
+| `parent_message_generator.jsx` | Standalone message generator (early prototype) |
 
-## 💡 Why This Project?
-
-> *"In educational management, communicating with hundreds of parents via WeChat can be a time-consuming manual task. I built this tool to automate the search-and-send process, allowing educators to focus more on teaching and less on repetitive clicking."*
-
-## ☕ Support
-
-If this tool saved you time, consider buying me a coffee!
-
-<a href="https://www.buymeacoffee.com/ssps6210noa" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+---
 
 ## Disclaimer
 
-This is an educational, non-profit project. It is not affiliated with any school, exam board, or publisher.
+This is an educational, non-profit project. API keys are your own responsibility. Not affiliated with any school, exam board, or publisher.

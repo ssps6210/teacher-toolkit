@@ -62,7 +62,11 @@ const Q_DATA = {
          explain: "前 n 行共有 n(n+1)/2 個數字。第 10 行結束時共有 10×11/2=55 個數，所以第 11 行從第 56 個數開始。第 11 行第 6 個數 = 55+6 = 61。",
          tip: "先用公式算出第10行結束在哪裡（共55個），第11行從56開始，再數到第6個就是61。" },
   q21: { label: "Q21 三人數字文字題", marks: 5,
+<<<<<<< HEAD
          explain: "設 Linda=x，則 Lucy=2x（Lucy 是 Linda 的兩倍），Lily=(3/4)×2x=(3/2)x（Lily 是 Lucy 的四分之三）。三數之和：x+2x+(3/2)x=45，化簡 (9/2)x=45，解得 x=10。",
+=======
+         explain: "設 Alice=x，則 Lucy=2x（Lucy 是 Alice 的兩倍），Lily=(3/4)×2x=(3/2)x（Lily 是 Lucy 的四分之三）。三數之和：x+2x+(3/2)x=45，化簡 (9/2)x=45，解得 x=10。",
+>>>>>>> bfcff9fc765594ad2e6c7f5f588d5862fb1bff01
          tip: "三人問題：讓最「基礎」的那個（通常是被最多人參照的）當 x，再用 x 表示其他人，列方程。" },
   q22: { label: "Q22 等邊三角形代數", marks: 5,
          explain: "等邊三角形三邊相等，所以 4x = 2x+6，解得 2x=6，x=3。代入得每邊長=4×3=12，因此 6y=12，y=2。",
@@ -79,6 +83,7 @@ const Q_DATA = {
 };
 
 const STUDENTS = [
+<<<<<<< HEAD
   { name: "James Fu",         score: 100,   wrong: [] },
   { name: "Nathan Wang",      score: 51.04, wrong: ["q2","q3","q11","q13","q15","q16","q17","q18","q19","q20","q21","q22","q24","q25"] },
   { name: "Chen Zhang",       score: 81.98, wrong: ["q4","q15","q16","q18","q20","q21"] },
@@ -91,11 +96,26 @@ const STUDENTS = [
   { name: "Gecheng Yang",     score: 100,   wrong: [] },
   { name: "Anna Huang",       score: 100,   wrong: [] },
   { name: "Yini Li",          score: 86,    wrong: ["q6","q15","q21","q24"] },
+=======
+  { name: "Alex Chen",         score: 100,   wrong: [] },
+  { name: "Sam Liu",      score: 51.04, wrong: ["q2","q3","q11","q13","q15","q16","q17","q18","q19","q20","q21","q22","q24","q25"] },
+  { name: "Jordan Park",       score: 81.98, wrong: ["q4","q15","q16","q18","q20","q21"] },
+  { name: "Yifan Gu",         score: 95,    wrong: ["q2","q21"] },
+  { name: "Riley Kim",        score: 82,    wrong: ["q13","q18","q20","q21","q24"] },
+  { name: "Morgan Lee",       score: 74.98, wrong: ["q16","q18","q21","q22","q23","q24"] },
+  { name: "YikTo Jin",        score: 92.02, wrong: ["q6","q11","q17"] },
+  { name: "Milly Lu",         score: 100,   wrong: [] },
+  { name: "Casey Wu",   score: 90,    wrong: ["q4","q6","q24"] },
+  { name: "Taylor Tan",     score: 100,   wrong: [] },
+  { name: "Jamie Ng",       score: 100,   wrong: [] },
+  { name: "Avery Ma",          score: 86,    wrong: ["q6","q15","q21","q24"] },
+>>>>>>> bfcff9fc765594ad2e6c7f5f588d5862fb1bff01
   { name: "Lachlan Morphett", score: 86.02, wrong: ["q3","q12","q20","q21"] },
   { name: "Noah Seho",        score: 100,   wrong: [] },
   { name: "Ruiyang Jiang",    score: 84,    wrong: ["q13","q18","q19","q20","q24"] },
   { name: "Mia P",            score: 79.02, wrong: ["q11","q12","q15","q19","q24"] },
   { name: "Eezer Tan",        score: 90,    wrong: ["q8","q15","q17"] },
+<<<<<<< HEAD
   { name: "yuxiang zheng",    score: 85,    wrong: ["q6","q11","q20","q24"] },
   { name: "Lucas Ke 1",       score: 85.98, wrong: ["q8","q16","q19","q24"] },
   { name: "Neil Chen",        score: 85.02, wrong: ["q8","q11","q21","q24"] },
@@ -106,6 +126,18 @@ const STUDENTS = [
   { name: "Andi Yao",         score: 63.04, wrong: ["q1","q9","q13","q18","q19","q20","q21","q24"] },
   { name: "Grace Han",        score: 74.02, wrong: ["q6","q10","q12","q18","q21","q23","q24"] },
   { name: "Xuanyu Zhu",       score: 72,    wrong: ["q2","q4","q6","q11","q12","q21","q25"] },
+=======
+  { name: "Drew Lam",    score: 85,    wrong: ["q6","q11","q20","q24"] },
+  { name: "Lucas Ke 1",       score: 85.98, wrong: ["q8","q16","q19","q24"] },
+  { name: "Quinn Zhao",        score: 85.02, wrong: ["q8","q11","q21","q24"] },
+  { name: "Sunny Shen",       score: 78.02, wrong: ["q4","q5","q8","q12","q23","q24"] },
+  { name: "Skyler Hsu",          score: 88.02, wrong: ["q6","q16","q21"] },
+  { name: "Perry 1",          score: 54,    wrong: ["q8","q10","q14","q15","q16","q17","q18","q19","q20","q21","q22","q24","q25"] },
+  { name: "Blake Ong",      score: 86.02, wrong: ["q10","q20","q21","q24"] },
+  { name: "Andi Yao",         score: 63.04, wrong: ["q1","q9","q13","q18","q19","q20","q21","q24"] },
+  { name: "Charlie Fong",        score: 74.02, wrong: ["q6","q10","q12","q18","q21","q23","q24"] },
+  { name: "Robin Guo",       score: 72,    wrong: ["q2","q4","q6","q11","q12","q21","q25"] },
+>>>>>>> bfcff9fc765594ad2e6c7f5f588d5862fb1bff01
 ];
 
 const CLASS_AVG = 83.2;
